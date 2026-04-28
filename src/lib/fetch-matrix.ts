@@ -83,13 +83,21 @@ interface CacheEntry {
 const matrixCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60_000;
 
+export function clearMatrixCacheForUser(username: string): void {
+  const prefix = `${username}:`;
+  for (const key of matrixCache.keys()) {
+    if (key.startsWith(prefix)) matrixCache.delete(key);
+  }
+}
+
 export async function fetchMatrix(
   endpoint: string,
   token: string,
   env: Api2Env,
-  options: { includeFirmware?: boolean } = {},
+  options: { includeFirmware?: boolean; username?: string } = {},
 ): Promise<MatrixRow[]> {
-  const cacheKey = `${env}:${endpoint}:${options.includeFirmware ? "fw" : "std"}`;
+  const userKey = options.username ?? "_anon";
+  const cacheKey = `${userKey}:${env}:${endpoint}:${options.includeFirmware ? "fw" : "std"}`;
   const cached = matrixCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.data;
