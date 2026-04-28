@@ -1,4 +1,9 @@
 export const ALL_PHASES = ["dev", "alpha", "beta", "rc", "final", "internal_dev", "internal_final", "branch", "revoke"];
+// Phases fetched eagerly on dashboard load. Other phases are fetched on-demand
+// when the user toggles them on. Keeping the standard hierarchy (dev..final)
+// here so cascadePhases produces correct results without re-running on the client.
+export const DEFAULT_FETCH_PHASES = ["dev", "alpha", "beta", "rc", "final"];
+export const EXTRA_PHASES = ["internal_dev", "internal_final", "branch", "revoke"];
 export const DEFAULT_ACTIVE_PHASES = new Set(["dev", "alpha", "beta", "final"]);
 export const NO_FIRE_PHASES = new Set(["dev", "branch", "internal_dev"]);
 

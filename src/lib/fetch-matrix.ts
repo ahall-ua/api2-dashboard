@@ -2,8 +2,7 @@ import { getEnvConfig, type Api2Env } from "./api2-client";
 import { mergeIntoMatrix, cascadePhases, hasStandardVersions, hasFirmwareVersions } from "./version-utils";
 import type { Api2App, Api2Plugin, MatrixRow } from "./types";
 import { PLATFORMS, FIRMWARE_PLATFORMS } from "./types";
-
-const ALL_FETCH_PHASES = ["dev", "alpha", "beta", "rc", "final", "internal_dev", "internal_final", "branch", "revoke"] as const;
+import { DEFAULT_FETCH_PHASES } from "./phase-constants";
 
 interface RequestTiming {
   endpoint: string;
@@ -94,10 +93,12 @@ export async function fetchMatrix(
   endpoint: string,
   token: string,
   env: Api2Env,
-  options: { includeFirmware?: boolean; username?: string } = {},
+  options: { includeFirmware?: boolean; username?: string; phases?: string[] } = {},
 ): Promise<MatrixRow[]> {
   const userKey = options.username ?? "_anon";
-  const cacheKey = `${userKey}:${env}:${endpoint}:${options.includeFirmware ? "fw" : "std"}`;
+  const phases = options.phases ?? DEFAULT_FETCH_PHASES;
+  const phasesKey = [...phases].sort().join(",");
+  const cacheKey = `${userKey}:${env}:${endpoint}:${options.includeFirmware ? "fw" : "std"}:${phasesKey}`;
   const cached = matrixCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.data;
@@ -111,7 +112,7 @@ export async function fetchMatrix(
   const wallStart = Date.now();
 
   let failures = 0;
-  const requests = ALL_FETCH_PHASES.flatMap((phase) =>
+  const requests = phases.flatMap((phase) =>
     platformVariants.map(async (platform) => {
       try {
         const products = await api2GetAll<Api2App | Api2Plugin>(
