@@ -83,6 +83,25 @@ export type Platform = "mac" | "win" | "all";
 export const PHASES: Phase[] = ["dev", "alpha", "beta", "rc", "final"];
 export const PLATFORMS: Platform[] = ["mac", "win"];
 
+// Firmware platform values (codenames for pedal/Apollo/mic hardware).
+// Anything in api2 with a `platform` not in {mac, win, all} is firmware.
+// To discover new values: hit /api/debug/platforms while logged in.
+export const FIRMWARE_PLATFORMS = [
+  "emperor",
+  "prince",
+  "node",
+  "neo1",
+  "neo2",
+  "neo4l",
+  "neo4pre",
+  "neo8",
+  "nelow1",
+  "nelow2",
+  "nelow4l",
+] as const;
+
+export const STANDARD_PLATFORMS = new Set<string>(["mac", "win", "all"]);
+
 export interface VersionSummary {
   versionId: number;
   version: string;
@@ -106,4 +125,6 @@ export interface MatrixRow {
   description: string;
   type: string;
   cells: Record<string, MatrixCell>;
+  // phase -> firmware platform name -> latest VersionSummary
+  firmwareCells: Record<string, Record<string, VersionSummary>>;
 }

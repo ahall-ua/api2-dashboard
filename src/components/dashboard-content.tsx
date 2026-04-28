@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, useState, Suspense } from "react";
 import { PhaseFilter } from "@/components/phase-filter";
 import { PhaseMatrix } from "@/components/phase-matrix";
+import { FirmwareMatrix } from "@/components/firmware-matrix";
 import { displayType } from "@/lib/version-utils";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -21,23 +21,10 @@ function filterRows(rows: MatrixRow[], query: string): MatrixRow[] {
   );
 }
 
-function useSearchParam(key: string): [string, (value: string) => void] {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const value = searchParams.get(key) || "";
-
-  function setValue(newValue: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (newValue) {
-      params.set(key, newValue);
-    } else {
-      params.delete(key);
-    }
-    const qs = params.toString();
-    router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });
-  }
-
-  return [value, setValue];
+// Keep search state local — pushing to the URL re-runs the dashboard
+// server component and refetches the entire matrix on every keystroke.
+function useSearchParam(_key: string): [string, (value: string) => void] {
+  return useState("");
 }
 
 function SearchableSection({
@@ -95,15 +82,61 @@ function SearchableSection({
   );
 }
 
+function FirmwareSection({
+  rows,
+  activePhases,
+  showTimestamps,
+  devFireMs,
+  fireMs,
+  search,
+  onSearchChange,
+}: {
+  rows: MatrixRow[];
+  activePhases: Set<string>;
+  showTimestamps: boolean;
+  devFireMs: number;
+  fireMs: number;
+  search: string;
+  onSearchChange: (v: string) => void;
+}) {
+  const filtered = useMemo(() => filterRows(rows, search), [rows, search]);
+  return (
+    <details open>
+      <summary className="cursor-pointer text-xl font-semibold mb-4 select-none">
+        Firmware
+        <span className="text-sm font-normal text-muted-foreground ml-2">
+          ({filtered.length}{search ? ` / ${rows.length}` : ""})
+        </span>
+      </summary>
+      <Input
+        placeholder="Search firmware..."
+        value={search}
+        onChange={(e) => onSearchChange(e.target.value)}
+        className="max-w-xs mb-4"
+      />
+      <FirmwareMatrix
+        rows={filtered}
+        activePhases={activePhases}
+        showTimestamps={showTimestamps}
+        devFireMs={devFireMs}
+        fireMs={fireMs}
+      />
+    </details>
+  );
+}
+
 function DashboardInner({
   appRows,
   pluginRows,
+  firmwareRows,
 }: {
   appRows: MatrixRow[];
   pluginRows: MatrixRow[];
+  firmwareRows: MatrixRow[];
 }) {
   const [appSearch, setAppSearch] = useSearchParam("apps");
   const [pluginSearch, setPluginSearch] = useSearchParam("plugins");
+  const [firmwareSearch, setFirmwareSearch] = useSearchParam("firmware");
 
   return (
     <PhaseFilter>
@@ -137,6 +170,21 @@ function DashboardInner({
             search={pluginSearch}
             onSearchChange={setPluginSearch}
           />
+
+          {firmwareRows.length > 0 && (
+            <>
+              <Separator />
+              <FirmwareSection
+                rows={firmwareRows}
+                activePhases={activePhases}
+                showTimestamps={showTimestamps}
+                devFireMs={devFireMs}
+                fireMs={fireMs}
+                search={firmwareSearch}
+                onSearchChange={setFirmwareSearch}
+              />
+            </>
+          )}
         </div>
       )}
     </PhaseFilter>
@@ -146,15 +194,17 @@ function DashboardInner({
 export function DashboardContent({
   appRows,
   pluginRows,
+  firmwareRows,
   env,
 }: {
   appRows: MatrixRow[];
   pluginRows: MatrixRow[];
+  firmwareRows: MatrixRow[];
   env?: string;
 }) {
   return (
     <Suspense>
-      <DashboardInner appRows={appRows} pluginRows={pluginRows} />
+      <DashboardInner appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} />
     </Suspense>
   );
 }

@@ -5,9 +5,11 @@ import type { Api2App, Api2Plugin, Api2Version, MatrixRow, MatrixCell, VersionSu
  * "0002.0000.0003.008978.ci-next" -> "2.0.3.8978.ci-next"
  */
 export function formatVersion(raw: string): string {
-  const parts = raw.split(".");
-  return parts
-    .map((part, i) => (i < 4 ? String(parseInt(part, 10)) : part))
+  // Strip leading zeros from any digit-prefix in each dot-separated segment.
+  // "0001" -> "1", "000101-win" -> "101-win", "0002-K8" -> "2-K8".
+  return raw
+    .split(".")
+    .map((part) => part.replace(/^0+(\d)/, "$1"))
     .join(".");
 }
 
@@ -58,29 +60,51 @@ export function mergeIntoMatrix(
       description: product.description,
       type: product.type,
       cells: {},
+      firmwareCells: {},
     };
     matrix.set(product.id, row);
-  }
-
-  if (!row.cells[phase]) {
-    row.cells[phase] = { mac: null, win: null, all: null };
   }
 
   const v = product.latest_version;
   const actualPlatform = v.platform;
 
-  if (actualPlatform === "mac" || actualPlatform === "win") {
+  if (actualPlatform === "mac" || actualPlatform === "win" || actualPlatform === "all") {
+    if (!row.cells[phase]) {
+      row.cells[phase] = { mac: null, win: null, all: null };
+    }
     const current = row.cells[phase][actualPlatform];
     if (!current || v.version > current.rawVersion) {
       row.cells[phase][actualPlatform] = toVersionSummary(v);
     }
   } else {
-    // Treat any non-mac/win platform (e.g. "all") as the "all" slot
-    const current = row.cells[phase].all;
+    // Firmware platform (emperor, prince, node, neoN, nelowN, ...)
+    if (!row.firmwareCells[phase]) row.firmwareCells[phase] = {};
+    const current = row.firmwareCells[phase][actualPlatform];
     if (!current || v.version > current.rawVersion) {
-      row.cells[phase].all = toVersionSummary(v);
+      row.firmwareCells[phase][actualPlatform] = toVersionSummary(v);
     }
   }
+}
+
+export function hasStandardVersions(row: MatrixRow): boolean {
+  return Object.values(row.cells).some((c) => c.mac || c.win || c.all);
+}
+
+export function hasFirmwareVersions(row: MatrixRow): boolean {
+  return Object.values(row.firmwareCells).some((m) => Object.keys(m).length > 0);
+}
+
+/**
+ * Distinct firmware platforms present across all rows, sorted.
+ */
+export function getFirmwarePlatforms(rows: MatrixRow[]): string[] {
+  const set = new Set<string>();
+  for (const row of rows) {
+    for (const phase of Object.values(row.firmwareCells)) {
+      for (const plat of Object.keys(phase)) set.add(plat);
+    }
+  }
+  return [...set].sort();
 }
 
 /**
@@ -101,6 +125,27 @@ export function cascadePhases(rows: MatrixRow[]): void {
   const hierarchy: Phase[] = ["dev", "alpha", "beta", "rc", "final"];
 
   for (const row of rows) {
+    // Firmware: cascade per firmware platform
+    const fwPlatforms = new Set<string>();
+    for (const phase of Object.values(row.firmwareCells)) {
+      for (const p of Object.keys(phase)) fwPlatforms.add(p);
+    }
+    for (const plat of fwPlatforms) {
+      let best: VersionSummary | null = null;
+      for (let i = hierarchy.length - 1; i >= 0; i--) {
+        const phase = hierarchy[i];
+        const v = row.firmwareCells[phase]?.[plat];
+        if (v && (!best || v.rawVersion > best.rawVersion)) best = v;
+        if (best) {
+          if (!row.firmwareCells[phase]) row.firmwareCells[phase] = {};
+          const cur = row.firmwareCells[phase][plat];
+          if (!cur || best.rawVersion > cur.rawVersion) {
+            row.firmwareCells[phase][plat] = best;
+          }
+        }
+      }
+    }
+
     for (const plat of ["mac", "win", "all"] as Platform[]) {
       // Walk from dev → final, tracking the highest version seen so far
       // from the *opposite* direction: final is the most restrictive,
@@ -171,9 +216,8 @@ export function getActivePhases(rows: MatrixRow[]): string[] {
   const allPhases = new Set<string>();
 
   for (const row of rows) {
-    for (const phase of Object.keys(row.cells)) {
-      allPhases.add(phase);
-    }
+    for (const phase of Object.keys(row.cells)) allPhases.add(phase);
+    for (const phase of Object.keys(row.firmwareCells)) allPhases.add(phase);
   }
 
   const ordered: string[] = [];

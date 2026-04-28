@@ -1,6 +1,7 @@
 import { getReadOnlyToken, getSessionEnv } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix } from "@/lib/fetch-matrix";
+import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
 import { DashboardContent } from "@/components/dashboard-content";
 
 export default async function DashboardPage() {
@@ -9,10 +10,13 @@ export default async function DashboardPage() {
 
   const env = await getSessionEnv();
 
-  const [appRows, pluginRows] = await Promise.all([
-    fetchMatrix("/apps", token, env),
+  const [allAppRows, pluginRows] = await Promise.all([
+    fetchMatrix("/apps", token, env, { includeFirmware: true }),
     fetchMatrix("/plugins", token, env),
   ]);
 
-  return <DashboardContent appRows={appRows} pluginRows={pluginRows} env={env} />;
+  const appRows = allAppRows.filter(hasStandardVersions);
+  const firmwareRows = allAppRows.filter(hasFirmwareVersions);
+
+  return <DashboardContent appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} env={env} />;
 }

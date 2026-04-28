@@ -1,7 +1,7 @@
 import { getEnvConfig, type Api2Env } from "./api2-client";
-import { mergeIntoMatrix, cascadePhases } from "./version-utils";
+import { mergeIntoMatrix, cascadePhases, hasStandardVersions, hasFirmwareVersions } from "./version-utils";
 import type { Api2App, Api2Plugin, MatrixRow } from "./types";
-import { PLATFORMS } from "./types";
+import { PLATFORMS, FIRMWARE_PLATFORMS } from "./types";
 
 const ALL_FETCH_PHASES = ["dev", "alpha", "beta", "rc", "final", "internal_dev", "internal_final", "branch", "revoke"] as const;
 
@@ -47,9 +47,11 @@ export async function fetchMatrix(
   endpoint: string,
   token: string,
   env: Api2Env,
+  options: { includeFirmware?: boolean } = {},
 ): Promise<MatrixRow[]> {
   const matrix = new Map<number, MatrixRow>();
-  const platformVariants = [...PLATFORMS, "all"] as const;
+  const platformVariants: string[] = [...PLATFORMS, "all"];
+  if (options.includeFirmware) platformVariants.push(...FIRMWARE_PLATFORMS);
 
   const requests = ALL_FETCH_PHASES.flatMap((phase) =>
     platformVariants.map(async (platform) => {
@@ -78,6 +80,6 @@ export async function fetchMatrix(
 
   return rows.filter((row) =>
     !HIDDEN_PRODUCTS.has(row.name) &&
-    Object.values(row.cells).some((cell) => cell.mac || cell.win || cell.all),
+    (hasStandardVersions(row) || hasFirmwareVersions(row)),
   );
 }
