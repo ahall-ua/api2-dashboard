@@ -18,8 +18,8 @@ export default async function DashboardLayout({
   return (
     <div className="flex flex-col flex-1">
       <TokenRefresher />
-      <GeocitiesEffect />
       <AppNav username={session.username} env={session.env || "prod"} />
+      <GeocitiesEffect />
       <main className="flex-1 p-6">{children}</main>
     </div>
   );

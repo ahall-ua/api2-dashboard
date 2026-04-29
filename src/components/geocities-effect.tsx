@@ -265,7 +265,7 @@ function GeocitiesEffectInner() {
         </div>
       </div>
       <div className="geo-band">
-        <ConstructionSign src="/under-construction.gif" width={260} />
+        <ConstructionSign src="/under-construction.gif" width={195} />
         <div className="geo-band-center">
           <div className="geo-band-row" style={{ fontSize: 14 }}>
             <span className="label">VISITORS</span>
@@ -285,7 +285,7 @@ function GeocitiesEffectInner() {
             ~ * ~ THANKS FOR VISITING ~ * ~
           </div>
         </div>
-        <ConstructionSign src="/under-construction-2.gif" width={180} />
+        <ConstructionSign src="/under-construction-2.gif" width={135} />
       </div>
     </>
   );
