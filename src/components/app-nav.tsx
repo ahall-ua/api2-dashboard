@@ -1,14 +1,26 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export function AppNav({ username, env }: { username?: string; env: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const onGrid = pathname.startsWith("/grid");
   const title = onGrid ? "Grid" : "Dashboard";
+
+  // Carry shared filter state across the Dashboard/Grid swap. Grid ignores
+  // `phase` (it uses `phases` plural for column visibility), but preserving
+  // it means dashboard → grid → dashboard remembers the user's phase choice.
+  const carryParams = new URLSearchParams();
+  for (const key of ["show", "phase"]) {
+    const val = searchParams.get(key);
+    if (val) carryParams.set(key, val);
+  }
+  const carryQs = carryParams.toString();
+  const carrySuffix = carryQs ? `?${carryQs}` : "";
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -32,11 +44,11 @@ export function AppNav({ username, env }: { username?: string; env: string }) {
         </Badge>
         <nav className="flex gap-3 text-sm">
           {onGrid ? (
-            <a href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+            <a href={`/dashboard${carrySuffix}`} className="text-muted-foreground hover:text-foreground transition-colors">
               Dashboard
             </a>
           ) : (
-            <a href="/grid" className="text-muted-foreground hover:text-foreground transition-colors">
+            <a href={`/grid${carrySuffix}`} className="text-muted-foreground hover:text-foreground transition-colors">
               Grid
             </a>
           )}

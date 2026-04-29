@@ -8,8 +8,9 @@ import { Separator } from "@/components/ui/separator";
 import { displayType, groupByType, getBestVersionForAccessLevel } from "@/lib/version-utils";
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
 import {
-  PHASE_COLORS, PLATFORM_COLORS,
+  PLATFORM_COLORS,
   ALL_PLATFORMS, PLATFORM_TOGGLE_COLORS,
+  DEFAULT_FETCH_PHASES, PHASE_TOGGLE_COLORS,
 } from "@/lib/phase-constants";
 import type { MatrixRow, VersionSummary } from "@/lib/types";
 
@@ -295,6 +296,14 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
     router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });
   }
 
+  function selectPhase(p: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p === "final") params.delete("phase");
+    else params.set("phase", p);
+    const qs = params.toString();
+    router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });
+  }
+
   // Auto-refresh every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
@@ -306,12 +315,23 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
   return (
     <div className="p-6 max-w-[1600px]">
       <div className="flex items-center gap-4 mb-6 flex-wrap">
-        <h1 className="text-2xl font-bold">
-          <Badge variant="secondary" className={`text-lg px-3 py-1 ${PHASE_COLORS[phase] || ""}`}>
-            {phase}
-          </Badge>
-        </h1>
-        <span className="text-muted-foreground text-sm">Monitor</span>
+        <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">Phase</span>
+        <div className="flex items-center gap-1.5">
+          {DEFAULT_FETCH_PHASES.map((p) => {
+            const isOn = p === phase;
+            const c = PHASE_TOGGLE_COLORS[p] || { on: "", off: "" };
+            return (
+              <button key={p} onClick={() => selectPhase(p)}>
+                <Badge
+                  variant="secondary"
+                  className={`cursor-pointer select-none transition-all px-3 py-1 ${isOn ? c.on : c.off} ${isOn ? "shadow-sm text-base" : "opacity-60"}`}
+                >
+                  {p}
+                </Badge>
+              </button>
+            );
+          })}
+        </div>
 
         <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Platforms</span>
         {ALL_PLATFORMS.map((p) => {
