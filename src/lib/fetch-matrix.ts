@@ -39,6 +39,7 @@ async function api2GetAll<T>(
 
   async function fetchPage(page: number): Promise<{ data: T[]; bytes: number; totalPages: number }> {
     const res = await fetch(urlFor(page), { headers, signal: AbortSignal.timeout(15_000) });
+    if (res.status === 401 || res.status === 403) throw new Api2AuthError(res.status, `API2 ${endpoint}: ${res.status}`);
     if (!res.ok) throw new Error(`API2 ${endpoint}: ${res.status}`);
     const text = await res.text();
     const totalPages = parseInt(res.headers.get("totalpages") ?? "1", 10) || 1;
@@ -73,6 +74,13 @@ async function api2GetAll<T>(
   }
 
   return results;
+}
+
+export class Api2AuthError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "Api2AuthError";
+  }
 }
 
 interface CacheEntry {
@@ -112,6 +120,7 @@ export async function fetchMatrix(
   const wallStart = Date.now();
 
   let failures = 0;
+  let authFailure = false;
   const requests = phases.flatMap((phase) =>
     platformVariants.map(async (platform) => {
       try {
@@ -127,12 +136,17 @@ export async function fetchMatrix(
         }
       } catch (err) {
         failures++;
+        if (err instanceof Api2AuthError) authFailure = true;
         console.warn(`api2 ${endpoint} ${phase}/${platform} failed:`, err instanceof Error ? err.message : err);
       }
     }),
   );
 
   await Promise.all(requests);
+
+  if (authFailure) {
+    throw new Api2AuthError(401, `API2 ${endpoint}: auth failed during matrix fetch`);
+  }
 
   if (process.env.API2_TIMING === "1") {
     logTimingSummary(endpoint, timings, Date.now() - wallStart);

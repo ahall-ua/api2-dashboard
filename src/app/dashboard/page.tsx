@@ -1,21 +1,37 @@
 import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { fetchMatrix } from "@/lib/fetch-matrix";
+import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
 import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
 import { DashboardContent } from "@/components/dashboard-content";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ retried?: string }>;
+}) {
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");
 
   const env = await getSessionEnv();
   const session = await getSession();
   const username = session.username;
+  const { retried } = await searchParams;
 
-  const [allAppRows, pluginRows] = await Promise.all([
-    fetchMatrix("/apps", token, env, { includeFirmware: true, username }),
-    fetchMatrix("/plugins", token, env, { username }),
-  ]);
+  let allAppRows, pluginRows;
+  try {
+    [allAppRows, pluginRows] = await Promise.all([
+      fetchMatrix("/apps", token, env, { includeFirmware: true, username }),
+      fetchMatrix("/plugins", token, env, { username }),
+    ]);
+  } catch (err) {
+    if (err instanceof Api2AuthError) {
+      // Token expired during fetch. Bounce to refresh route (which can write
+      // cookies) and back. Guard against infinite loops with ?retried=1.
+      if (retried === "1") redirect("/login");
+      redirect(`/api/auth/refresh?next=${encodeURIComponent("/dashboard?retried=1")}`);
+    }
+    throw err;
+  }
 
   const appRows = allAppRows.filter(hasStandardVersions);
   const firmwareRows = allAppRows.filter(hasFirmwareVersions);
