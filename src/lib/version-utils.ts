@@ -241,9 +241,12 @@ const TYPE_DISPLAY_NAMES: Record<string, string> = {
   uad2: "uad2",
   external: "external",
   native: "other",
+  console_channel_strip_presets: "content",
+  luna_demo_session: "content",
+  luna_hooks: "content",
 };
 
-const TYPE_ORDER = ["uadx", "uadx-luna", "uad2", "external", "other"];
+const TYPE_ORDER = ["uadx", "uadx-luna", "uad2", "external", "content", "other"];
 
 export function displayType(rawType: string): string {
   return TYPE_DISPLAY_NAMES[rawType] || rawType || "other";

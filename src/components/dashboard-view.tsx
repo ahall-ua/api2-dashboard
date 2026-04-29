@@ -359,10 +359,10 @@ function SearchableMonitorSection({
 function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginRows: MatrixRow[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const showAvailable = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other"] as const;
+  const showAvailable = ["apps", "uadx", "uadx-luna", "uad2", "external", "content", "plugins-other"] as const;
   const activeShow = useActiveShow(showAvailable);
 
-  const KNOWN_PLUGIN_TYPES = new Set(["uadx", "uadx-luna", "uad2", "external"]);
+  const KNOWN_PLUGIN_TYPES = new Set(["uadx", "uadx-luna", "uad2", "external", "content"]);
   const visiblePluginRows = pluginRows.filter((r) => {
     const t = displayType(r.type);
     if (KNOWN_PLUGIN_TYPES.has(t)) return activeShow.has(t);

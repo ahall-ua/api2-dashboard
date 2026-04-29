@@ -7,7 +7,7 @@ import { fetchPlanFromShow } from "@/lib/show-filter-parsing";
 import type { MatrixRow } from "@/lib/types";
 import { GridContent } from "@/components/grid-content";
 
-const GRID_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other", "firmware"] as const;
+const GRID_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "content", "plugins-other", "firmware"] as const;
 
 export default async function GridPage({
   searchParams,

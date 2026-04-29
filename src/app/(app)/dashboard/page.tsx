@@ -6,7 +6,7 @@ import { fetchPlanFromShow } from "@/lib/show-filter-parsing";
 import type { MatrixRow } from "@/lib/types";
 import { DashboardView } from "@/components/dashboard-view";
 
-const DASHBOARD_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other"] as const;
+const DASHBOARD_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "content", "plugins-other"] as const;
 
 export default async function DashboardPage({
   searchParams,

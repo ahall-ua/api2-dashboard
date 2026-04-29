@@ -22,7 +22,7 @@ export function parseShow(
   return valid.length > 0 ? new Set(valid) : new Set(available);
 }
 
-const PLUGIN_KEYS = ["uadx", "uadx-luna", "uad2", "external", "plugins-other"] as const;
+const PLUGIN_KEYS = ["uadx", "uadx-luna", "uad2", "external", "content", "plugins-other"] as const;
 
 /**
  * Decide which endpoints to fetch based on the `?show=` param.

@@ -196,10 +196,10 @@ function DashboardBody({
     }
   }, [activePhases, onPhaseLoaded]);
 
-  const available = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other", "firmware"] as const;
+  const available = ["apps", "uadx", "uadx-luna", "uad2", "external", "content", "plugins-other", "firmware"] as const;
   const active = useActiveShow(available);
 
-  const KNOWN_PLUGIN_TYPES = new Set(["uadx", "uadx-luna", "uad2", "external"]);
+  const KNOWN_PLUGIN_TYPES = new Set(["uadx", "uadx-luna", "uad2", "external", "content"]);
   const visiblePluginRows = pluginRows.filter((r) => {
     const t = displayType(r.type);
     if (KNOWN_PLUGIN_TYPES.has(t)) return active.has(t);
