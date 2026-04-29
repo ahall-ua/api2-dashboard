@@ -44,6 +44,23 @@ function VersionRow({
 }) {
   const ref = useRef<HTMLTableRowElement>(null);
   const triggered = useRef(false);
+  const [highlighted, setHighlighted] = useState(false);
+
+  // Highlight + scroll-into-view when the URL hash matches this row.
+  // Robust across soft-nav since we react to hashchange explicitly.
+  useEffect(() => {
+    function applyIfMatch() {
+      if (typeof window === "undefined") return;
+      const match = window.location.hash === `#v-${versionId}`;
+      setHighlighted(match);
+      if (match) {
+        ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+    }
+    applyIfMatch();
+    window.addEventListener("hashchange", applyIfMatch);
+    return () => window.removeEventListener("hashchange", applyIfMatch);
+  }, [versionId]);
 
   useEffect(() => {
     if (build || triggered.current) return;
@@ -68,7 +85,11 @@ function VersionRow({
     <TableRow
       ref={ref}
       id={`v-${versionId}`}
-      className="border-border/30 hover:bg-accent/50 transition-colors scroll-mt-20 target:bg-amber-500/15 target:ring-2 target:ring-amber-500/60"
+      className={`border-border/30 transition-colors scroll-mt-20 ${
+        highlighted
+          ? "bg-amber-500/25 outline-2 outline-amber-400 outline-offset-[-2px]"
+          : "hover:bg-accent/50"
+      }`}
     >
       {children}
     </TableRow>
@@ -256,14 +277,14 @@ export function VersionHistory({
                             </a>
                           )}
                           <SentryIcons sentry={build?.sentry} platform={v.platform} />
+                          {shouldShowFire(v.phase, v.created_at, devFireMs, fireMs) && (
+                            <span title="Recent deploy">🔥</span>
+                          )}
                           {build?.labels?.map((l) => (
                             <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-secondary-foreground">
                               {l}
                             </span>
                           ))}
-                          {shouldShowFire(v.phase, v.created_at, devFireMs, fireMs) && (
-                            <span title="Recent deploy">🔥</span>
-                          )}
                         </span>
                       </TableCell>
                       <TableCell>

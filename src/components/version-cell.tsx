@@ -104,6 +104,7 @@ function VersionLine2({
   const linkify = useGeoLinker();
   const detailUrl = linkify(`/${kind}/${productId}#v-${v.versionId}`);
 
+  const isHot = shouldShowFire(phase, v.createdAt, devFireMs, fireMs);
   return (
     <div className="flex items-center">
       <a
@@ -113,7 +114,6 @@ function VersionLine2({
         <span className="font-mono text-foreground">{v.version}</span>
         <span className={`${platformColor} ml-1.5 font-medium`}>{platformLabel}</span>
         {showTimestamps && <span className="text-muted-foreground ml-1.5">{formatTimestamp(v.createdAt)}</span>}
-        {shouldShowFire(phase, v.createdAt, devFireMs, fireMs) && <span className="ml-1" title="Recent deploy">🔥</span>}
       </a>
       {bambooUrl && (
         <a
@@ -135,6 +135,7 @@ function VersionLine2({
       ) : deepLink?.archiveName ? (
         <ArchiveIcon url={makeArchiveUrl(deepLink, v.version)} />
       ) : null}
+      {isHot && <span className="ml-1" title="Recent deploy">🔥</span>}
     </div>
   );
 }
