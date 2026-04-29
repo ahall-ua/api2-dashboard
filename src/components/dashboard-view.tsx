@@ -431,11 +431,13 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
             {FIRE_OPTIONS.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
           </select>
         </span>
+
+        <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
+        <BranchesToggle />
       </div>
 
-      <div className="mb-4 flex items-center gap-4 flex-wrap">
+      <div className="mb-4">
         <ShowFilter available={showAvailable} />
-        <BranchesToggle />
       </div>
 
       <div className="space-y-8">
