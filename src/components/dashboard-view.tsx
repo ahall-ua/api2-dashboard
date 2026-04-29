@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { displayType, groupByType, getBestVersionForAccessLevel } from "@/lib/version-utils";
+import { displayType, groupByType, getBestVersionForAccessLevel, formatTimestamp } from "@/lib/version-utils";
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
 import { useGeoLinker } from "@/components/geocities-effect";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
@@ -80,7 +80,7 @@ function bambooBuildRedirectUrl(
 // Product types that don't have Bamboo plans in the manifest.
 const NO_BAMBOO_TYPES = new Set(["lunacomponent_with_wrappers", "lunacomponent"]);
 
-function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number }) {
+function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs, showTimestamps }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number; showTimestamps: boolean }) {
   const platformColor = PLATFORM_COLORS[v.platform] || "";
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildRedirectUrl(kind, productName, v.version) : null;
@@ -105,6 +105,7 @@ function VersionLine({ v, phase, kind, productId, productName, productType, devF
         {v.version}
       </a>
       <span className={`${platformColor} font-medium text-xs`}>{v.platform}</span>
+      {showTimestamps && <span className="text-muted-foreground text-xs">{formatTimestamp(v.createdAt)}</span>}
       {bambooUrl && (
         <a
           href={bambooUrl}
@@ -147,6 +148,7 @@ function MonitorCard({
   platforms,
   devFireMs,
   fireMs,
+  showTimestamps,
 }: {
   row: MatrixRow;
   kind: "apps" | "plugins";
@@ -154,6 +156,7 @@ function MonitorCard({
   platforms: Set<string>;
   devFireMs: number;
   fireMs: number;
+  showTimestamps: boolean;
 }) {
   const showBranches = useShowBranches();
   const linkify = useGeoLinker();
@@ -187,9 +190,9 @@ function MonitorCard({
         <div className="text-xs text-muted-foreground">{row.name}</div>
       </div>
       <div className="space-y-1">
-        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} />}
-        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} />}
-        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} />}
+        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />}
+        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />}
+        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />}
       </div>
     </div>
   );
@@ -223,6 +226,7 @@ function MonitorCardGrid({
   platforms,
   devFireMs,
   fireMs,
+  showTimestamps,
 }: {
   rows: MatrixRow[];
   kind: "apps" | "plugins";
@@ -230,6 +234,7 @@ function MonitorCardGrid({
   platforms: Set<string>;
   devFireMs: number;
   fireMs: number;
+  showTimestamps: boolean;
 }) {
   if (rows.length === 0) return null;
 
@@ -238,7 +243,7 @@ function MonitorCardGrid({
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-3">
       {sorted.map((row) => (
-        <MonitorCard key={row.id} row={row} kind={kind} phase={phase} platforms={platforms} devFireMs={devFireMs} fireMs={fireMs} />
+        <MonitorCard key={row.id} row={row} kind={kind} phase={phase} platforms={platforms} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />
       ))}
     </div>
   );
@@ -253,6 +258,7 @@ function SearchableMonitorSection({
   groupByTypeFlag,
   devFireMs,
   fireMs,
+  showTimestamps,
   search,
   onSearchChange,
 }: {
@@ -264,6 +270,7 @@ function SearchableMonitorSection({
   groupByTypeFlag?: boolean;
   devFireMs: number;
   fireMs: number;
+  showTimestamps: boolean;
   search: string;
   onSearchChange: (value: string) => void;
 }) {
@@ -287,7 +294,7 @@ function SearchableMonitorSection({
         className="max-w-xs mb-4"
       />
       {!groupByTypeFlag ? (
-        <MonitorCardGrid rows={visible} kind={kind} phase={phase} platforms={platforms} devFireMs={devFireMs} fireMs={fireMs} />
+        <MonitorCardGrid rows={visible} kind={kind} phase={phase} platforms={platforms} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />
       ) : (
         <div className="space-y-4">
           {[...groupByType(visible).entries()].map(([type, typeRows]) => {
@@ -299,7 +306,7 @@ function SearchableMonitorSection({
                   {type}
                   <span className="ml-1 text-xs">({typeVisible.length})</span>
                 </summary>
-                <MonitorCardGrid rows={typeVisible} kind={kind} phase={phase} platforms={platforms} devFireMs={devFireMs} fireMs={fireMs} />
+                <MonitorCardGrid rows={typeVisible} kind={kind} phase={phase} platforms={platforms} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />
               </details>
             );
           })}
@@ -339,6 +346,7 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
   const [pluginSearch, setPluginSearch] = useState(searchParams.get("plugins") || "");
   const [devFireMs, setDevFireMs] = useState(() => labelToMs(searchParams.get("dev_fire") || "off"));
   const [fireMs, setFireMs] = useState(() => labelToMs(searchParams.get("fire") || "1w"));
+  const [showTimestamps, setShowTimestamps] = useState(() => searchParams.get("timestamps") === "1");
 
   function togglePlatform(p: string) {
     const next = new Set(platforms);
@@ -353,6 +361,16 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
     } else {
       params.set("platforms", sorted);
     }
+    const qs = params.toString();
+    router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });
+  }
+
+  function toggleTimestamps() {
+    const next = !showTimestamps;
+    setShowTimestamps(next);
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) params.set("timestamps", "1");
+    else params.delete("timestamps");
     const qs = params.toString();
     router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });
   }
@@ -434,6 +452,18 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
 
         <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
         <BranchesToggle />
+        <button onClick={toggleTimestamps}>
+          <Badge
+            variant="secondary"
+            className={`cursor-pointer select-none transition-all ${
+              showTimestamps
+                ? "bg-zinc-600 text-zinc-100 shadow-sm"
+                : "bg-zinc-800/50 text-zinc-500 opacity-60"
+            }`}
+          >
+            timestamps
+          </Badge>
+        </button>
       </div>
 
       <div className="mb-4">
@@ -450,6 +480,7 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
             platforms={platforms}
             devFireMs={devFireMs}
             fireMs={fireMs}
+            showTimestamps={showTimestamps}
             search={appSearch}
             onSearchChange={setAppSearch}
           />
@@ -467,6 +498,7 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
             groupByTypeFlag
             devFireMs={devFireMs}
             fireMs={fireMs}
+            showTimestamps={showTimestamps}
             search={pluginSearch}
             onSearchChange={setPluginSearch}
           />
