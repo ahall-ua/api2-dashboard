@@ -169,6 +169,18 @@ const GEOCITIES_CSS = `
     background-position: center !important;
     text-shadow: 0 0 3px #000, 1px 1px 0 #000 !important;
   }
+
+  /* The phase / platform / show toggle pills use very dim "off" colors
+     (bg-X-900/30 text-X-600) which become unreadable against the busy
+     geocities background. Force a solid dark bg + white text for any
+     element whose class includes a /30 or /50 opacity modifier. */
+  html.geocities [class*="900/30"],
+  html.geocities [class*="800/50"] {
+    background-color: rgba(0, 0, 0, 0.78) !important;
+    color: #ffffff !important;
+    border: 1px dashed rgba(255, 255, 255, 0.5) !important;
+  }
+  html.geocities button { text-shadow: 1px 1px 0 #000 !important; }
 `;
 
 function ConstructionSign({ src = "/under-construction.gif", width = 220 }: { src?: string; width?: number }) {
