@@ -1,4 +1,4 @@
-import { getReadOnlyToken, getSessionEnv } from "@/lib/session";
+import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix } from "@/lib/fetch-matrix";
 import { MonitorView } from "@/components/monitor-view";
@@ -8,10 +8,12 @@ export default async function MonitorPage() {
   if (!token) redirect("/login");
 
   const env = await getSessionEnv();
+  const session = await getSession();
+  const username = session.username;
 
   const [appRows, pluginRows] = await Promise.all([
-    fetchMatrix("/apps", token, env),
-    fetchMatrix("/plugins", token, env),
+    fetchMatrix("/apps", token, env, { username }),
+    fetchMatrix("/plugins", token, env, { username }),
   ]);
 
   return <MonitorView appRows={appRows} pluginRows={pluginRows} />;
