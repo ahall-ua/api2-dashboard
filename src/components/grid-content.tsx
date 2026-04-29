@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useRef, useCallback, Suspense } from "rea
 import { PhaseFilter } from "@/components/phase-filter";
 import { PhaseMatrix } from "@/components/phase-matrix";
 import { FirmwareMatrix } from "@/components/firmware-matrix";
+import { ShowFilter, useActiveShow } from "@/components/show-filter";
 import { displayType } from "@/lib/version-utils";
 import { DEFAULT_FETCH_PHASES } from "@/lib/phase-constants";
 import { Separator } from "@/components/ui/separator";
@@ -184,7 +185,7 @@ function DashboardBody({
     for (const phase of activePhases) {
       if (loadedPhasesRef.current.has(phase) || inFlightRef.current.has(phase)) continue;
       inFlightRef.current.add(phase);
-      fetch(`/api/dashboard/matrix-phase?phase=${encodeURIComponent(phase)}`)
+      fetch(`/api/matrix-phase?phase=${encodeURIComponent(phase)}`)
         .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
         .then((data: { phase: string; appRows: MatrixRow[]; pluginRows: MatrixRow[]; firmwareRows: MatrixRow[] }) => {
           loadedPhasesRef.current.add(data.phase);
@@ -195,56 +196,82 @@ function DashboardBody({
     }
   }, [activePhases, onPhaseLoaded]);
 
+  const available = ["apps", "uadx", "uadx-luna", "uad2", "plugins-other", "firmware"] as const;
+  const active = useActiveShow(available);
+
+  const visiblePluginRows = pluginRows.filter((r) => {
+    const t = displayType(r.type);
+    if (active.has(t)) return true;
+    if (t !== "uadx" && t !== "uadx-luna" && t !== "uad2") return active.has("plugins-other");
+    return false;
+  });
+  const showPlugins = visiblePluginRows.length > 0;
+
+  const sections: React.ReactNode[] = [];
+  if (active.has("apps")) {
+    sections.push(
+      <SearchableSection
+        key="apps"
+        title="Apps"
+        rows={appRows}
+        kind="apps"
+        activePhases={activePhases}
+        activePlatforms={activePlatforms}
+        showTimestamps={showTimestamps}
+        devFireMs={devFireMs}
+        fireMs={fireMs}
+        search={appSearch}
+        onSearchChange={setAppSearch}
+      />,
+    );
+  }
+  if (showPlugins) {
+    sections.push(
+      <SearchableSection
+        key="plugins"
+        title="Plugins"
+        rows={visiblePluginRows}
+        kind="plugins"
+        groupByType
+        activePhases={activePhases}
+        activePlatforms={activePlatforms}
+        showTimestamps={showTimestamps}
+        devFireMs={devFireMs}
+        fireMs={fireMs}
+        search={pluginSearch}
+        onSearchChange={setPluginSearch}
+      />,
+    );
+  }
+  if (active.has("firmware") && firmwareRows.length > 0) {
+    sections.push(
+      <FirmwareSection
+        key="firmware"
+        rows={firmwareRows}
+        activePhases={activePhases}
+        showTimestamps={showTimestamps}
+        devFireMs={devFireMs}
+        fireMs={fireMs}
+        search={firmwareSearch}
+        onSearchChange={setFirmwareSearch}
+      />,
+    );
+  }
+
   return (
-        <div className="space-y-8 max-w-[1600px]">
-          <SearchableSection
-            title="Apps"
-            rows={appRows}
-            kind="apps"
-            activePhases={activePhases}
-            activePlatforms={activePlatforms}
-            showTimestamps={showTimestamps}
-            devFireMs={devFireMs}
-            fireMs={fireMs}
-            search={appSearch}
-            onSearchChange={setAppSearch}
-          />
-
-          <Separator />
-
-          <SearchableSection
-            title="Plugins"
-            rows={pluginRows}
-            kind="plugins"
-            groupByType
-            activePhases={activePhases}
-            activePlatforms={activePlatforms}
-            showTimestamps={showTimestamps}
-            devFireMs={devFireMs}
-            fireMs={fireMs}
-            search={pluginSearch}
-            onSearchChange={setPluginSearch}
-          />
-
-          {firmwareRows.length > 0 && (
-            <>
-              <Separator />
-              <FirmwareSection
-                rows={firmwareRows}
-                activePhases={activePhases}
-                showTimestamps={showTimestamps}
-                devFireMs={devFireMs}
-                fireMs={fireMs}
-                search={firmwareSearch}
-                onSearchChange={setFirmwareSearch}
-              />
-            </>
-          )}
+    <div className="space-y-8 max-w-[1600px]">
+      <ShowFilter available={available} />
+      {sections.map((s, i) => (
+        <div key={i}>
+          {i > 0 && <Separator className="mb-8" />}
+          {s}
         </div>
+      ))}
+    </div>
   );
 }
 
-function DashboardInner({
+function GridInner({
   appRows: initialAppRows,
   pluginRows: initialPluginRows,
   firmwareRows: initialFirmwareRows,
@@ -295,7 +322,7 @@ function DashboardInner({
   );
 }
 
-export function DashboardContent({
+export function GridContent({
   appRows,
   pluginRows,
   firmwareRows,
@@ -308,7 +335,7 @@ export function DashboardContent({
 }) {
   return (
     <Suspense>
-      <DashboardInner appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} />
+      <GridInner appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} />
     </Suspense>
   );
 }

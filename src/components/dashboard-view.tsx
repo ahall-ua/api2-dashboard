@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { displayType, groupByType, getBestVersionForAccessLevel } from "@/lib/version-utils";
+import { ShowFilter, useActiveShow } from "@/components/show-filter";
 import {
   PHASE_COLORS, PLATFORM_COLORS,
   ALL_PLATFORMS, PLATFORM_TOGGLE_COLORS,
@@ -66,7 +67,7 @@ function bambooBuildRedirectUrl(
     product: productName,
     kind,
     releaseName: displayVersion,
-    fallback: "/dashboard/monitor",
+    fallback: "/dashboard",
   });
   return `/api/bamboo/redirect?${params}`;
 }
@@ -118,7 +119,7 @@ function MonitorCard({
   return (
     <div className={`border border-border/50 border-l-4 ${borderColor} rounded-lg bg-card/70 p-4 flex flex-col gap-2 hover:bg-card transition-colors`}>
       <div>
-        <a href={`/dashboard/${kind}/${row.id}`} className="font-semibold text-foreground text-sm leading-tight hover:underline">
+        <a href={`/${kind}/${row.id}`} className="font-semibold text-foreground text-sm leading-tight hover:underline">
           {row.description || row.name}
         </a>
         <div className="text-xs text-muted-foreground">{row.name}</div>
@@ -251,9 +252,20 @@ function SearchableMonitorSection({
   );
 }
 
-function MonitorInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginRows: MatrixRow[] }) {
+function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginRows: MatrixRow[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const showAvailable = ["apps", "uadx", "uadx-luna", "uad2", "plugins-other"] as const;
+  const activeShow = useActiveShow(showAvailable);
+
+  const visiblePluginRows = pluginRows.filter((r) => {
+    const t = displayType(r.type);
+    if (activeShow.has(t)) return true;
+    if (t !== "uadx" && t !== "uadx-luna" && t !== "uad2") return activeShow.has("plugins-other");
+    return false;
+  });
+  const showApps = activeShow.has("apps");
+  const showPlugins = visiblePluginRows.length > 0;
 
   const phase = searchParams.get("phase") || "final";
   const platformsParam = searchParams.get("platforms");
@@ -338,45 +350,49 @@ function MonitorInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginRow
             {FIRE_OPTIONS.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
           </select>
         </span>
+      </div>
 
-        <a href="/dashboard" className="text-sm text-muted-foreground hover:underline ml-auto">
-          &larr; Dashboard
-        </a>
+      <div className="mb-4">
+        <ShowFilter available={showAvailable} />
       </div>
 
       <div className="space-y-8">
-        <SearchableMonitorSection
-          title="Apps"
-          rows={appRows}
-          kind="apps"
-          phase={phase}
-          platforms={platforms}
-          devFireMs={devFireMs}
-          fireMs={fireMs}
-          search={appSearch}
-          onSearchChange={setAppSearch}
-        />
+        {showApps && (
+          <SearchableMonitorSection
+            title="Apps"
+            rows={appRows}
+            kind="apps"
+            phase={phase}
+            platforms={platforms}
+            devFireMs={devFireMs}
+            fireMs={fireMs}
+            search={appSearch}
+            onSearchChange={setAppSearch}
+          />
+        )}
 
-        <Separator />
+        {showApps && showPlugins && <Separator />}
 
-        <SearchableMonitorSection
-          title="Plugins"
-          rows={pluginRows}
-          kind="plugins"
-          phase={phase}
-          platforms={platforms}
-          groupByTypeFlag
-          devFireMs={devFireMs}
-          fireMs={fireMs}
-          search={pluginSearch}
-          onSearchChange={setPluginSearch}
-        />
+        {showPlugins && (
+          <SearchableMonitorSection
+            title="Plugins"
+            rows={visiblePluginRows}
+            kind="plugins"
+            phase={phase}
+            platforms={platforms}
+            groupByTypeFlag
+            devFireMs={devFireMs}
+            fireMs={fireMs}
+            search={pluginSearch}
+            onSearchChange={setPluginSearch}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-export function MonitorView({
+export function DashboardView({
   appRows,
   pluginRows,
 }: {
@@ -389,10 +405,10 @@ export function MonitorView({
   if (!mounted) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="text-muted-foreground text-sm">Loading monitor...</div>
+        <div className="text-muted-foreground text-sm">Loading dashboard...</div>
       </div>
     );
   }
 
-  return <MonitorInner appRows={appRows} pluginRows={pluginRows} />;
+  return <DashboardInner appRows={appRows} pluginRows={pluginRows} />;
 }

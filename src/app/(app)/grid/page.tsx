@@ -2,9 +2,9 @@ import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
 import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
-import { DashboardContent } from "@/components/dashboard-content";
+import { GridContent } from "@/components/grid-content";
 
-export default async function DashboardPage({
+export default async function GridPage({
   searchParams,
 }: {
   searchParams: Promise<{ retried?: string }>;
@@ -25,10 +25,8 @@ export default async function DashboardPage({
     ]);
   } catch (err) {
     if (err instanceof Api2AuthError) {
-      // Token expired during fetch. Bounce to refresh route (which can write
-      // cookies) and back. Guard against infinite loops with ?retried=1.
       if (retried === "1") redirect("/login");
-      redirect(`/api/auth/refresh?next=${encodeURIComponent("/dashboard?retried=1")}`);
+      redirect(`/api/auth/refresh?next=${encodeURIComponent("/grid?retried=1")}`);
     }
     throw err;
   }
@@ -36,5 +34,5 @@ export default async function DashboardPage({
   const appRows = allAppRows.filter(hasStandardVersions);
   const firmwareRows = allAppRows.filter(hasFirmwareVersions);
 
-  return <DashboardContent appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} env={env} />;
+  return <GridContent appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} env={env} />;
 }

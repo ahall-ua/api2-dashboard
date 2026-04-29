@@ -137,39 +137,31 @@ export function PhaseFilter({
     devFire: number,
     fire: number,
   ) => {
-    const params = new URLSearchParams();
+    // Start from the existing URL so params managed by other components
+    // (search, kind filter, etc.) survive — only overwrite/delete the keys
+    // this filter is responsible for.
+    const params = new URLSearchParams(searchParams.toString());
+
+    function setOrDelete(key: string, value: string, isDefault: boolean) {
+      if (isDefault) params.delete(key);
+      else params.set(key, value);
+    }
 
     const phasesStr = [...phases].sort().join(",");
     const defaultPhasesStr = [...DEFAULT_ACTIVE_PHASES].sort().join(",");
-    if (phasesStr !== defaultPhasesStr) {
-      params.set("phases", phasesStr);
-    }
+    setOrDelete("phases", phasesStr, phasesStr === defaultPhasesStr);
 
     const platformsStr = [...platforms].sort().join(",");
     const defaultPlatformsStr = [...DEFAULT_ACTIVE_PLATFORMS].sort().join(",");
-    if (platformsStr !== defaultPlatformsStr) {
-      params.set("platforms", platformsStr);
-    }
+    setOrDelete("platforms", platformsStr, platformsStr === defaultPlatformsStr);
 
-    if (timestamps) {
-      params.set("timestamps", "1");
-    }
+    setOrDelete("timestamps", "1", !timestamps);
 
     const devFireLabel = msToLabel(devFire);
-    if (devFireLabel !== DEFAULT_DEV_FIRE) {
-      params.set("dev_fire", devFireLabel);
-    }
+    setOrDelete("dev_fire", devFireLabel, devFireLabel === DEFAULT_DEV_FIRE);
 
     const fireLabel = msToLabel(fire);
-    if (fireLabel !== DEFAULT_FIRE) {
-      params.set("fire", fireLabel);
-    }
-
-    // Preserve search params managed by other components
-    for (const key of ["apps", "plugins", "phase"]) {
-      const val = searchParams.get(key);
-      if (val) params.set(key, val);
-    }
+    setOrDelete("fire", fireLabel, fireLabel === DEFAULT_FIRE);
 
     const qs = params.toString();
     const newUrl = window.location.pathname + (qs ? `?${qs}` : "");

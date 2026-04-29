@@ -49,7 +49,7 @@ function MatrixTable({
             <TableRow key={row.id} className="border-border/30 hover:bg-accent/50 transition-colors">
               <TableCell className="font-medium">
                 <a
-                  href={`/dashboard/${kind}/${row.id}`}
+                  href={`/${kind}/${row.id}`}
                   className="text-primary hover:text-primary/80 hover:underline transition-colors"
                 >
                   {row.description || row.name}

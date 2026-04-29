@@ -30,7 +30,7 @@ export default async function PluginDetailPage({
     <div className="max-w-[1400px]">
       <div className="mb-6">
         <a href="/dashboard" className="text-sm text-muted-foreground hover:underline">
-          &larr; Back to Dashboard
+          &larr; Back
         </a>
         <h2 className="text-xl font-semibold mt-2">{pluginName}</h2>
         {plugin && (

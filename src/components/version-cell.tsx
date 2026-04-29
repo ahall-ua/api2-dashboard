@@ -18,7 +18,7 @@ function bambooBuildUrl(
     product: productName,
     kind,
     releaseName: displayVersion,
-    fallback: `/dashboard/${kind}/${productId}`,
+    fallback: `/${kind}/${productId}`,
   });
   return `/api/bamboo/redirect?${params}`;
 }
