@@ -109,12 +109,14 @@ export function VersionHistory({
   productId,
   appName,
   productType,
+  header,
 }: {
   versions: Api2Version[];
   kind: "apps" | "plugins";
   productId: number;
   appName?: string;
   productType?: string;
+  header?: React.ReactNode;
 }) {
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
@@ -219,6 +221,7 @@ export function VersionHistory({
 
         return (
           <>
+          {header}
           <div className="flex items-center gap-3 mb-4">
             <Input
               placeholder="Search versions..."

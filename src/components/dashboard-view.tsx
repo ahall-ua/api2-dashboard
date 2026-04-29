@@ -421,8 +421,9 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
   }, [router]);
 
   return (
-    <div className="p-6 max-w-[1600px]">
-      <div className="flex items-center gap-4 mb-6 flex-wrap">
+    <div className="max-w-[1600px]">
+      {/* Row 1: phases (left) | options (right) */}
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">Phase</span>
         <div className="flex items-center gap-1.5">
           {DEFAULT_FETCH_PHASES.map((p) => {
@@ -440,8 +441,29 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
             );
           })}
         </div>
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">Options</span>
+          <BranchesToggle />
+          <BambooToggle />
+          <SentryToggle />
+          <button onClick={toggleTimestamps}>
+            <Badge
+              variant="secondary"
+              className={`cursor-pointer select-none transition-all ${
+                showTimestamps
+                  ? "bg-zinc-600 text-zinc-100 shadow-sm"
+                  : "bg-zinc-800/50 text-zinc-500 opacity-60"
+              }`}
+            >
+              timestamps
+            </Badge>
+          </button>
+        </div>
+      </div>
 
-        <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Platforms</span>
+      {/* Row 2: platforms (left) | fire selectors (right) */}
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
+        <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">Platforms</span>
         {ALL_PLATFORMS.map((p) => {
           const isOn = platforms.has(p);
           const c = PLATFORM_TOGGLE_COLORS[p] || { on: "", off: "" };
@@ -456,47 +478,32 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
             </button>
           );
         })}
-
-        <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">🔥</span>
-        <span className="inline-flex items-center gap-1">
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">dev</span>
-          <select
-            value={msToLabel(devFireMs)}
-            onChange={(e) => setDevFireMs(labelToMs(e.target.value))}
-            className="bg-secondary text-secondary-foreground text-xs rounded px-1.5 py-0.5 cursor-pointer border border-border/50"
-          >
-            {FIRE_OPTIONS.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
-          </select>
-        </span>
-        <span className="inline-flex items-center gap-1">
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">other</span>
-          <select
-            value={msToLabel(fireMs)}
-            onChange={(e) => setFireMs(labelToMs(e.target.value))}
-            className="bg-secondary text-secondary-foreground text-xs rounded px-1.5 py-0.5 cursor-pointer border border-border/50"
-          >
-            {FIRE_OPTIONS.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
-          </select>
-        </span>
-
-        <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
-        <BranchesToggle />
-        <BambooToggle />
-        <SentryToggle />
-        <button onClick={toggleTimestamps}>
-          <Badge
-            variant="secondary"
-            className={`cursor-pointer select-none transition-all ${
-              showTimestamps
-                ? "bg-zinc-600 text-zinc-100 shadow-sm"
-                : "bg-zinc-800/50 text-zinc-500 opacity-60"
-            }`}
-          >
-            timestamps
-          </Badge>
-        </button>
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">🔥</span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">dev</span>
+            <select
+              value={msToLabel(devFireMs)}
+              onChange={(e) => setDevFireMs(labelToMs(e.target.value))}
+              className="bg-secondary text-secondary-foreground text-xs rounded px-1.5 py-0.5 cursor-pointer border border-border/50"
+            >
+              {FIRE_OPTIONS.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+            </select>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-xs text-muted-foreground uppercase tracking-wider">other</span>
+            <select
+              value={msToLabel(fireMs)}
+              onChange={(e) => setFireMs(labelToMs(e.target.value))}
+              className="bg-secondary text-secondary-foreground text-xs rounded px-1.5 py-0.5 cursor-pointer border border-border/50"
+            >
+              {FIRE_OPTIONS.map((o) => <option key={o.label} value={o.label}>{o.label}</option>)}
+            </select>
+          </span>
+        </div>
       </div>
 
+      {/* Row 3: show pills */}
       <div className="mb-4">
         <ShowFilter available={showAvailable} />
       </div>

@@ -206,7 +206,8 @@ export function PhaseFilter({
 
   return (
     <div>
-      <div className="flex gap-2 mb-6 flex-wrap items-center">
+      {/* Row 1: phases (left) | options (right) */}
+      <div className="flex gap-2 mb-2 flex-wrap items-center">
         <ToggleSet
           label="Phases"
           items={ALL_PHASES}
@@ -214,29 +215,12 @@ export function PhaseFilter({
           colors={PHASE_TOGGLE_COLORS}
           onToggle={togglePhase}
         />
-
-        <span className="ml-3" />
-
-        <ToggleSet
-          label="Platforms"
-          items={ALL_PLATFORMS}
-          active={activePlatforms}
-          colors={PLATFORM_TOGGLE_COLORS}
-          onToggle={togglePlatform}
-        />
-
-        <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">🔥</span>
-        <FireSelect label="dev" value={devFireMs} onChange={handleDevFireChange} />
-        <FireSelect label="other" value={fireMs} onChange={handleFireChange} />
-
-        {(showBranchesOption || showTimestampsOption) && (
-          <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
-        )}
-        {showBranchesOption && <BranchesToggle />}
-        <BambooToggle />
-        <SentryToggle />
-        {showTimestampsOption && (
-          <>
+        <div className="flex gap-2 flex-wrap items-center ml-auto">
+          <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">Options</span>
+          {showBranchesOption && <BranchesToggle />}
+          <BambooToggle />
+          <SentryToggle />
+          {showTimestampsOption && (
             <button onClick={handleToggleTimestamps}>
               <Badge
                 variant="secondary"
@@ -249,9 +233,26 @@ export function PhaseFilter({
                 timestamps
               </Badge>
             </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Row 2: platforms (left) | fire selectors (right) */}
+      <div className="flex gap-2 mb-6 flex-wrap items-center">
+        <ToggleSet
+          label="Platforms"
+          items={ALL_PLATFORMS}
+          active={activePlatforms}
+          colors={PLATFORM_TOGGLE_COLORS}
+          onToggle={togglePlatform}
+        />
+        <div className="flex gap-2 flex-wrap items-center ml-auto">
+          <span className="text-xs text-muted-foreground mr-1 uppercase tracking-wider">🔥</span>
+          <FireSelect label="dev" value={devFireMs} onChange={handleDevFireChange} />
+          <FireSelect label="other" value={fireMs} onChange={handleFireChange} />
+        </div>
+      </div>
+
       {children({ activePhases, activePlatforms, showTimestamps, devFireMs, fireMs })}
     </div>
   );
