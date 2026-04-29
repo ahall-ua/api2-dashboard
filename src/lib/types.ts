@@ -129,4 +129,6 @@ export interface MatrixRow {
   firmwareCells: Record<string, Record<string, VersionSummary>>;
   // Bamboo CI branch (from manifest), populated server-side. May be undefined.
   branch?: string;
+  // URL to the product's Bamboo plan (prefers nightly), populated server-side.
+  bambooPlanUrl?: string;
 }

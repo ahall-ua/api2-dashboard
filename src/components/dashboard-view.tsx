@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { displayType, groupByType, getBestVersionForAccessLevel } from "@/lib/version-utils";
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
+import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
+import { ExternalLink } from "lucide-react";
 import { BranchesToggle, BranchTag, useShowBranches } from "@/components/branches-toggle";
 import {
   PLATFORM_COLORS,
@@ -74,21 +76,63 @@ function bambooBuildRedirectUrl(
   return `/api/bamboo/redirect?${params}`;
 }
 
-function VersionLine({ v, phase, kind, productName, devFireMs, fireMs }: { v: VersionSummary; phase: string; kind: string; productName: string; devFireMs: number; fireMs: number }) {
+// Product types that don't have Bamboo plans in the manifest.
+const NO_BAMBOO_TYPES = new Set(["lunacomponent_with_wrappers", "lunacomponent"]);
+
+function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number }) {
   const platformColor = PLATFORM_COLORS[v.platform] || "";
-  const bambooUrl = bambooBuildRedirectUrl(kind, productName, v.version);
+  const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
+  const bambooUrl = hasBamboo ? bambooBuildRedirectUrl(kind, productName, v.version) : null;
+  const detailUrl = `/${kind}/${productId}#v-${v.versionId}`;
+  const deepLink = getDeepLinkConfig(kind, productName, productType);
+  const isUaConnect = productName === "UA_Connect";
+
+  async function handleApi2Download(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await fetch(`/api/proxy/${kind}/${productId}/versions/${v.versionId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const url = data.private_install_url || data.install_url;
+    if (url) window.open(url, "_blank");
+  }
 
   return (
     <div className="flex items-center gap-2 text-sm">
-      <a
-        href={bambooUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="font-mono text-blue-600 dark:text-blue-400 hover:underline"
-      >
+      <a href={detailUrl} className="font-mono text-blue-600 dark:text-blue-400 hover:underline">
         {v.version}
       </a>
       <span className={`${platformColor} font-medium text-xs`}>{v.platform}</span>
+      {bambooUrl && (
+        <a
+          href={bambooUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open Bamboo build"
+          className="inline-flex text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ExternalLink className="w-3 h-3" />
+        </a>
+      )}
+      {isUaConnect ? (
+        <a
+          href="#"
+          title="Download installer from API2"
+          onClick={handleApi2Download}
+          className="inline-flex text-sky-400 hover:text-sky-300 transition-colors"
+        >
+          ↓
+        </a>
+      ) : deepLink?.archiveName ? (
+        <a
+          href={makeArchiveUrl(deepLink, v.version)}
+          title="Download via UA Connect"
+          className="inline-flex text-emerald-400 hover:text-emerald-300 transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          ↓
+        </a>
+      ) : null}
       {shouldShowFire(phase, v.createdAt, devFireMs, fireMs) && <span title="Recent deploy">🔥</span>}
     </div>
   );
@@ -125,13 +169,24 @@ function MonitorCard({
         <a href={`/${kind}/${row.id}`} className="font-semibold text-foreground text-sm leading-tight hover:underline">
           {row.description || row.name}
         </a>
+        {row.bambooPlanUrl && (
+          <a
+            href={row.bambooPlanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Bamboo plan"
+            className="inline-flex ml-1.5 text-muted-foreground hover:text-foreground transition-colors align-middle"
+          >
+            <ExternalLink className="w-3 h-3" />
+          </a>
+        )}
         {showBranches && <BranchTag branch={row.branch} />}
         <div className="text-xs text-muted-foreground">{row.name}</div>
       </div>
       <div className="space-y-1">
-        {all && <VersionLine v={all} phase={phase} kind={kind} productName={row.name} devFireMs={devFireMs} fireMs={fireMs} />}
-        {mac && <VersionLine v={mac} phase={phase} kind={kind} productName={row.name} devFireMs={devFireMs} fireMs={fireMs} />}
-        {win && <VersionLine v={win} phase={phase} kind={kind} productName={row.name} devFireMs={devFireMs} fireMs={fireMs} />}
+        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} />}
+        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} />}
+        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} />}
       </div>
     </div>
   );

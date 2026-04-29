@@ -1,7 +1,7 @@
 import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
-import { fetchBambooManifest, findBranchForApp, findBranchForPlugin } from "@/lib/bamboo-manifest";
+import { fetchBambooManifest, findBranchForApp, findBranchForPlugin, findPlanUrlForApp, findPlanUrlForPlugin } from "@/lib/bamboo-manifest";
 import { DashboardView } from "@/components/dashboard-view";
 
 export default async function DashboardPage({
@@ -19,8 +19,11 @@ export default async function DashboardPage({
 
   let appRows, pluginRows;
   try {
+    // Use includeFirmware:true so the apps cache key matches the grid page;
+    // dashboard ignores firmware rows but back-nav between the two pages is
+    // a cache hit instead of a fresh ~5s sweep.
     [appRows, pluginRows] = await Promise.all([
-      fetchMatrix("/apps", token, env, { username }),
+      fetchMatrix("/apps", token, env, { username, includeFirmware: true }),
       fetchMatrix("/plugins", token, env, { username }),
     ]);
   } catch (err) {
@@ -34,8 +37,14 @@ export default async function DashboardPage({
 
   const manifest = await fetchBambooManifest();
   if (manifest) {
-    for (const r of appRows) r.branch = findBranchForApp(manifest, r.name);
-    for (const r of pluginRows) r.branch = findBranchForPlugin(manifest, r.name);
+    for (const r of appRows) {
+      r.branch = findBranchForApp(manifest, r.name);
+      r.bambooPlanUrl = findPlanUrlForApp(manifest, r.name);
+    }
+    for (const r of pluginRows) {
+      r.branch = findBranchForPlugin(manifest, r.name);
+      r.bambooPlanUrl = findPlanUrlForPlugin(manifest, r.name);
+    }
   }
 
   return <DashboardView appRows={appRows} pluginRows={pluginRows} />;

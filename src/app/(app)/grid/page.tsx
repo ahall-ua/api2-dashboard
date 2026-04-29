@@ -2,7 +2,7 @@ import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
 import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
-import { fetchBambooManifest, findBranchForApp, findBranchForPlugin } from "@/lib/bamboo-manifest";
+import { fetchBambooManifest, findBranchForApp, findBranchForPlugin, findPlanUrlForApp, findPlanUrlForPlugin } from "@/lib/bamboo-manifest";
 import { GridContent } from "@/components/grid-content";
 
 export default async function GridPage({
@@ -34,8 +34,14 @@ export default async function GridPage({
 
   const manifest = await fetchBambooManifest();
   if (manifest) {
-    for (const r of allAppRows) r.branch = findBranchForApp(manifest, r.name);
-    for (const r of pluginRows) r.branch = findBranchForPlugin(manifest, r.name);
+    for (const r of allAppRows) {
+      r.branch = findBranchForApp(manifest, r.name);
+      r.bambooPlanUrl = findPlanUrlForApp(manifest, r.name);
+    }
+    for (const r of pluginRows) {
+      r.branch = findBranchForPlugin(manifest, r.name);
+      r.bambooPlanUrl = findPlanUrlForPlugin(manifest, r.name);
+    }
   }
 
   const appRows = allAppRows.filter(hasStandardVersions);

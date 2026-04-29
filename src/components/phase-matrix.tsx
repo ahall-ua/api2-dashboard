@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { VersionCell } from "@/components/version-cell";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
+import { ExternalLink } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -56,6 +57,17 @@ function MatrixTable({
                 >
                   {row.description || row.name}
                 </a>
+                {row.bambooPlanUrl && (
+                  <a
+                    href={row.bambooPlanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open Bamboo plan"
+                    className="inline-flex ml-1.5 text-muted-foreground hover:text-foreground transition-colors align-middle"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
                 {showBranches && <BranchTag branch={row.branch} />}
                 <div className="text-xs text-muted-foreground">{row.name}</div>
               </TableCell>

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getValidToken, getSession, getSessionEnv } from "@/lib/session";
 import { fetchMatrix } from "@/lib/fetch-matrix";
 import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
-import { fetchBambooManifest, findBranchForApp, findBranchForPlugin } from "@/lib/bamboo-manifest";
+import { fetchBambooManifest, findBranchForApp, findBranchForPlugin, findPlanUrlForApp, findPlanUrlForPlugin } from "@/lib/bamboo-manifest";
 import { ALL_PHASES } from "@/lib/phase-constants";
 
 export async function GET(request: Request) {
@@ -26,8 +26,14 @@ export async function GET(request: Request) {
   ]);
 
   if (manifest) {
-    for (const r of allAppRows) r.branch = findBranchForApp(manifest, r.name);
-    for (const r of pluginRows) r.branch = findBranchForPlugin(manifest, r.name);
+    for (const r of allAppRows) {
+      r.branch = findBranchForApp(manifest, r.name);
+      r.bambooPlanUrl = findPlanUrlForApp(manifest, r.name);
+    }
+    for (const r of pluginRows) {
+      r.branch = findBranchForPlugin(manifest, r.name);
+      r.bambooPlanUrl = findPlanUrlForPlugin(manifest, r.name);
+    }
   }
 
   return NextResponse.json({

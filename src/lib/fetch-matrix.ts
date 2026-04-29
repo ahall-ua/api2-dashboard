@@ -88,7 +88,7 @@ interface CacheEntry {
   expiresAt: number;
 }
 const matrixCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 5 * 60_000;
 
 export function clearMatrixCacheForUser(username: string): void {
   const prefix = `${username}:`;

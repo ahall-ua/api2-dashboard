@@ -2,6 +2,7 @@ import type { VersionSummary } from "@/lib/types";
 import { formatTimestamp } from "@/lib/version-utils";
 import { PLATFORM_COLORS } from "@/lib/phase-constants";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
+import { ExternalLink } from "lucide-react";
 
 const DEV_PHASES = new Set(["dev", "branch", "internal_dev"]);
 
@@ -96,29 +97,30 @@ function VersionLine2({
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildUrl(kind, productName, productId, v.version) : null;
   const platformColor = PLATFORM_COLORS[platformLabel] || "";
-
-  const inner = (
-    <>
-      <span className="font-mono text-foreground">{v.version}</span>
-      <span className={`${platformColor} ml-1.5 font-medium`}>{platformLabel}</span>
-      {showTimestamps && <span className="text-muted-foreground ml-1.5">{formatTimestamp(v.createdAt)}</span>}
-      {shouldShowFire(phase, v.createdAt, devFireMs, fireMs) && <span className="ml-1" title="Recent deploy">🔥</span>}
-    </>
-  );
+  const detailUrl = `/${kind}/${productId}#v-${v.versionId}`;
 
   return (
     <div className="flex items-center">
-      {bambooUrl ? (
+      <a
+        href={detailUrl}
+        className="hover:bg-accent rounded px-1.5 py-0.5 -mx-1 transition-colors"
+      >
+        <span className="font-mono text-foreground">{v.version}</span>
+        <span className={`${platformColor} ml-1.5 font-medium`}>{platformLabel}</span>
+        {showTimestamps && <span className="text-muted-foreground ml-1.5">{formatTimestamp(v.createdAt)}</span>}
+        {shouldShowFire(phase, v.createdAt, devFireMs, fireMs) && <span className="ml-1" title="Recent deploy">🔥</span>}
+      </a>
+      {bambooUrl && (
         <a
           href={bambooUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="hover:bg-accent rounded px-1.5 py-0.5 -mx-1 transition-colors"
+          title="Open Bamboo build"
+          className="inline-flex ml-1 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => e.stopPropagation()}
         >
-          {inner}
+          <ExternalLink className="w-3 h-3" />
         </a>
-      ) : (
-        <span className="rounded px-1.5 py-0.5 -mx-1">{inner}</span>
       )}
       {isUaConnect ? (
         <Api2DownloadIcon kind={kind} productId={productId} versionId={v.versionId} />

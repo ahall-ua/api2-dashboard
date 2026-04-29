@@ -102,6 +102,30 @@ export function findBranchForPlugin(manifest: BambooManifest, pluginName: string
   return findProductsForPlugin(manifest, pluginName)[0]?.ua_branch;
 }
 
+/**
+ * Pick the best plan to link to for a product. Prefers a nightly plan
+ * (nightly_mac, nightly_win, or nightly), falls back to ci, then any plan.
+ */
+function pickRepresentativePlan(plans: Record<string, BambooPlan>): BambooPlan | undefined {
+  const keys = Object.keys(plans);
+  const nightly = keys.find((k) => k.startsWith("nightly"));
+  if (nightly) return plans[nightly];
+  if (plans.ci) return plans.ci;
+  return keys[0] ? plans[keys[0]] : undefined;
+}
+
+export function findPlanUrlForApp(manifest: BambooManifest, appName: string): string | undefined {
+  const product = findProductsForApp(manifest, appName)[0];
+  const plan = product && pickRepresentativePlan(product.plans);
+  return plan ? bambooPlanUrl(plan) : undefined;
+}
+
+export function findPlanUrlForPlugin(manifest: BambooManifest, pluginName: string): string | undefined {
+  const product = findProductsForPlugin(manifest, pluginName)[0];
+  const plan = product && pickRepresentativePlan(product.plans);
+  return plan ? bambooPlanUrl(plan) : undefined;
+}
+
 export function findProductsForPlugin(
   manifest: BambooManifest,
   api2PluginName: string,

@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Api2Version } from "@/lib/types";
+import { ExternalLink } from "lucide-react";
 
 const DEV_PHASES = new Set(["dev", "branch", "internal_dev"]);
 
@@ -29,11 +30,13 @@ type BuildMap = Record<string, BuildInfo>;
 
 function VersionRow({
   releaseName,
+  versionId,
   build,
   onVisible,
   children,
 }: {
   releaseName: string;
+  versionId: number;
   build: BuildInfo | undefined;
   onVisible: (releaseName: string) => void;
   children: React.ReactNode;
@@ -61,7 +64,11 @@ function VersionRow({
   }, [releaseName, build, onVisible]);
 
   return (
-    <TableRow ref={ref} className="border-border/30 hover:bg-accent/50 transition-colors">
+    <TableRow
+      ref={ref}
+      id={`v-${versionId}`}
+      className="border-border/30 hover:bg-accent/50 transition-colors scroll-mt-20 target:bg-amber-500/15 target:ring-2 target:ring-amber-500/60"
+    >
       {children}
     </TableRow>
   );
@@ -156,7 +163,7 @@ export function VersionHistory({
   const showUacInstall = kind === "apps" && appName === "UA_Connect";
 
   return (
-    <PhaseFilter showTimestampsOption={false}>
+    <PhaseFilter showTimestampsOption={false} showBranchesOption={false}>
       {({ activePhases, activePlatforms, devFireMs, fireMs }) => {
         const filtered = versions.filter((v) => {
           if (!activePhases.has(v.phase)) return false;
@@ -229,26 +236,28 @@ export function VersionHistory({
                     <VersionRow
                       key={v.id}
                       releaseName={displayVer}
+                      versionId={v.id}
                       build={build}
                       onVisible={queueBuildLookup}
                     >
                       <TableCell className="font-mono text-sm">
-                        {build ? (
-                          <a
-                            href={build.browseUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="hover:underline text-blue-600 dark:text-blue-400"
-                            title={`Bamboo: ${build.resultKey}`}
-                          >
-                            {displayVer}
-                          </a>
-                        ) : (
-                          displayVer
-                        )}
-                        {shouldShowFire(v.phase, v.created_at, devFireMs, fireMs) && (
-                          <span className="ml-1.5" title="Recent deploy">🔥</span>
-                        )}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span>{displayVer}</span>
+                          {build && (
+                            <a
+                              href={build.browseUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title={`Bamboo: ${build.resultKey}`}
+                              className="inline-flex text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          {shouldShowFire(v.phase, v.created_at, devFireMs, fireMs) && (
+                            <span title="Recent deploy">🔥</span>
+                          )}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={PLATFORM_COLORS[v.platform] || ""}>
