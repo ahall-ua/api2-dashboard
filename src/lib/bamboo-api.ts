@@ -146,8 +146,17 @@ export async function buildReleaseNameMap(
 
   for (const results of allResults) {
     for (const r of results) {
-      if (r.buildReleaseName && !map.has(r.buildReleaseName)) {
-        map.set(r.buildReleaseName, toBuildInfo(r));
+      if (r.buildReleaseName) {
+        const info = toBuildInfo(r);
+        if (!map.has(r.buildReleaseName)) {
+          map.set(r.buildReleaseName, info);
+        }
+        // Also index under the normalized form so callers requesting
+        // "1.9.3.3659-mac" can resolve a Bamboo entry stored as "1.9.3.3659".
+        const normalized = normalizeReleaseName(r.buildReleaseName);
+        if (normalized !== r.buildReleaseName && !map.has(normalized)) {
+          map.set(normalized, info);
+        }
       }
     }
   }
@@ -188,11 +197,38 @@ async function fetchBuildWithReleaseName(
  * then checks each plan directly with that build number.
  * Falls back to branch plans if not found on main plans.
  */
+/**
+ * Normalize by stripping a trailing `-<suffix>` from the last dot-segment.
+ * "1.9.3.3659-mac" -> "1.9.3.3659"
+ * "1.2.3.456" -> "1.2.3.456" (unchanged)
+ *
+ * UA Connect uses `-mac`/`-win` platform suffixes on the build number; Bamboo
+ * may store the name with or without the suffix depending on the plan setup,
+ * so we compare both forms.
+ */
+export function normalizeReleaseName(name: string): string {
+  const parts = name.split(".");
+  const last = parts[parts.length - 1];
+  const hyphen = last.indexOf("-");
+  if (hyphen > 0) {
+    parts[parts.length - 1] = last.slice(0, hyphen);
+    return parts.join(".");
+  }
+  return name;
+}
+
+function releaseNameMatches(bambooName: string | undefined, requested: string): boolean {
+  if (!bambooName) return false;
+  if (bambooName === requested) return true;
+  return normalizeReleaseName(bambooName) === normalizeReleaseName(requested);
+}
+
 export async function findBuildByReleaseName(
   plans: Record<string, { project_key: string; plan_key: string }>,
   releaseName: string,
 ): Promise<BuildInfo | null> {
-  // Extract build number from release name (e.g. "1.2.9.905" → 905)
+  // Extract build number from release name (e.g. "1.2.9.905" → 905,
+  // "1.9.3.3659-mac" → 3659).
   const parts = releaseName.split(".");
   const buildNumber = parts.length >= 4 ? parseInt(parts[parts.length - 1], 10) : NaN;
   if (isNaN(buildNumber)) return null;
@@ -206,7 +242,7 @@ export async function findBuildByReleaseName(
     mainPlanKeys.map((pk) => fetchBuildWithReleaseName(pk, buildNumber)),
   );
   for (const r of mainResults) {
-    if (r?.buildReleaseName === releaseName) {
+    if (r && releaseNameMatches(r.buildReleaseName, releaseName)) {
       return toBuildInfo(r);
     }
   }
@@ -221,7 +257,7 @@ export async function findBuildByReleaseName(
     branchKeys.map((bk) => fetchBuildWithReleaseName(bk, buildNumber)),
   );
   for (const r of branchResults) {
-    if (r?.buildReleaseName === releaseName) {
+    if (r && releaseNameMatches(r.buildReleaseName, releaseName)) {
       return toBuildInfo(r);
     }
   }
