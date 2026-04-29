@@ -51,9 +51,8 @@ function VersionRow({
   useEffect(() => {
     function applyIfMatch() {
       if (typeof window === "undefined") return;
-      const match = window.location.hash === `#v-${versionId}`;
-      setHighlighted(match);
-      if (match) {
+      if (window.location.hash === `#v-${versionId}`) {
+        setHighlighted(true);
         ref.current?.scrollIntoView({ block: "center", behavior: "smooth" });
       }
     }
