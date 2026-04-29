@@ -3,12 +3,16 @@ import { redirect } from "next/navigation";
 import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
 import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
 import { fetchBambooManifest, findBranchForApp, findBranchForPlugin, findPlanUrlForApp, findPlanUrlForPlugin } from "@/lib/bamboo-manifest";
+import { fetchPlanFromShow } from "@/lib/show-filter-parsing";
+import type { MatrixRow } from "@/lib/types";
 import { GridContent } from "@/components/grid-content";
+
+const GRID_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other", "firmware"] as const;
 
 export default async function GridPage({
   searchParams,
 }: {
-  searchParams: Promise<{ retried?: string }>;
+  searchParams: Promise<{ retried?: string; show?: string }>;
 }) {
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");
@@ -16,14 +20,22 @@ export default async function GridPage({
   const env = await getSessionEnv();
   const session = await getSession();
   const username = session.username;
-  const { retried } = await searchParams;
+  const { retried, show } = await searchParams;
+  const plan = fetchPlanFromShow(show, GRID_SHOW_AVAILABLE);
+  const needsAppsEndpoint = plan.fetchApps || plan.fetchFirmware;
 
-  let allAppRows, pluginRows;
+  let allAppRows: MatrixRow[] = [];
+  let pluginRows: MatrixRow[] = [];
   try {
-    [allAppRows, pluginRows, ] = await Promise.all([
-      fetchMatrix("/apps", token, env, { includeFirmware: true, username }),
-      fetchMatrix("/plugins", token, env, { username }),
+    const results = await Promise.all([
+      needsAppsEndpoint
+        ? fetchMatrix("/apps", token, env, { includeFirmware: plan.fetchFirmware, username })
+        : Promise.resolve([] as MatrixRow[]),
+      plan.fetchPlugins
+        ? fetchMatrix("/plugins", token, env, { username })
+        : Promise.resolve([] as MatrixRow[]),
     ]);
+    [allAppRows, pluginRows] = results;
   } catch (err) {
     if (err instanceof Api2AuthError) {
       if (retried === "1") redirect("/login");
@@ -44,8 +56,8 @@ export default async function GridPage({
     }
   }
 
-  const appRows = allAppRows.filter(hasStandardVersions);
-  const firmwareRows = allAppRows.filter(hasFirmwareVersions);
+  const appRows = plan.fetchApps ? allAppRows.filter(hasStandardVersions) : [];
+  const firmwareRows = plan.fetchFirmware ? allAppRows.filter(hasFirmwareVersions) : [];
 
   return <GridContent appRows={appRows} pluginRows={pluginRows} firmwareRows={firmwareRows} env={env} />;
 }

@@ -2,12 +2,16 @@ import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
 import { fetchBambooManifest, findBranchForApp, findBranchForPlugin, findPlanUrlForApp, findPlanUrlForPlugin } from "@/lib/bamboo-manifest";
+import { fetchPlanFromShow } from "@/lib/show-filter-parsing";
+import type { MatrixRow } from "@/lib/types";
 import { DashboardView } from "@/components/dashboard-view";
+
+const DASHBOARD_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other"] as const;
 
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ retried?: string; phase?: string }>;
+  searchParams: Promise<{ retried?: string; phase?: string; show?: string }>;
 }) {
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");
@@ -16,16 +20,23 @@ export default async function DashboardPage({
   const session = await getSession();
   const username = session.username;
   const params = await searchParams;
+  const plan = fetchPlanFromShow(params.show, DASHBOARD_SHOW_AVAILABLE);
 
-  let appRows, pluginRows;
+  let appRows: MatrixRow[] = [];
+  let pluginRows: MatrixRow[] = [];
   try {
-    // Use includeFirmware:true so the apps cache key matches the grid page;
-    // dashboard ignores firmware rows but back-nav between the two pages is
-    // a cache hit instead of a fresh ~5s sweep.
-    [appRows, pluginRows] = await Promise.all([
-      fetchMatrix("/apps", token, env, { username, includeFirmware: true }),
-      fetchMatrix("/plugins", token, env, { username }),
+    // Match the grid's cache key when fetching apps (`includeFirmware: true`)
+    // so back-nav between the two pages is a cache hit. Dashboard ignores
+    // firmware rows visually but loading them is cheap if cached.
+    const results = await Promise.all([
+      plan.fetchApps
+        ? fetchMatrix("/apps", token, env, { username, includeFirmware: true })
+        : Promise.resolve([] as MatrixRow[]),
+      plan.fetchPlugins
+        ? fetchMatrix("/plugins", token, env, { username })
+        : Promise.resolve([] as MatrixRow[]),
     ]);
+    [appRows, pluginRows] = results;
   } catch (err) {
     if (err instanceof Api2AuthError) {
       if (params.retried === "1") redirect("/login");

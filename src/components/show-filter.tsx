@@ -29,12 +29,7 @@ export const SHOW_OPTIONS: Record<string, ShowOption> = {
   firmware:       { key: "firmware",      label: "Firmware",   ...COLORS.pink },
 };
 
-function parseShow(param: string | null, available: readonly string[]): Set<string> {
-  if (!param) return new Set(available);
-  const parts = param.split(",").map((s) => s.trim()).filter(Boolean);
-  const valid = parts.filter((k) => available.includes(k));
-  return valid.length > 0 ? new Set(valid) : new Set(available);
-}
+import { parseShow } from "@/lib/show-filter-parsing";
 
 export function useActiveShow(available: readonly string[]): Set<string> {
   const searchParams = useSearchParams();
