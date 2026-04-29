@@ -14,10 +14,10 @@ export function AppNav({ username, env }: { username?: string; env: string }) {
   // Carry shared filter state across the Dashboard/Grid swap. Grid ignores
   // `phase` (it uses `phases` plural for column visibility), but preserving
   // it means dashboard → grid → dashboard remembers the user's phase choice.
+  const carryKeys = new Set(["show", "phase", "branches", "bamboo", "sentry", "geocities"]);
   const carryParams = new URLSearchParams();
-  for (const key of ["show", "phase", "branches", "bamboo", "sentry", "geocities"]) {
-    const val = searchParams.get(key);
-    if (val) carryParams.set(key, val);
+  for (const [key, val] of searchParams.entries()) {
+    if (carryKeys.has(key)) carryParams.append(key, val);
   }
   const carryQs = carryParams.toString();
   const carrySuffix = carryQs ? `?${carryQs}` : "";

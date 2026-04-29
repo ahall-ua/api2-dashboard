@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import { SHARED_KEYS } from "@/lib/shared-url";
 
 const GEOCITIES_CSS = `
   html.geocities, html.geocities body {
@@ -218,26 +219,30 @@ function RollingCounter({ value, digits = 7 }: { value: number; digits?: number 
 }
 
 /**
- * Append ?geocities=1 to a relative href, preserving any existing
- * query string and fragment.
- */
-export function appendGeocities(href: string): string {
-  const hashIdx = href.indexOf("#");
-  const path = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
-  const hash = hashIdx >= 0 ? href.slice(hashIdx) : "";
-  const sep = path.includes("?") ? "&" : "?";
-  return `${path}${sep}geocities=1${hash}`;
-}
-
-/**
- * Returns a function that conditionally appends ?geocities=1 to internal
- * links so the easter-egg state survives client-side navigation.
+ * Returns a function that carries forward shared filter URL params (show,
+ * phase, branches, bamboo, sentry, geocities) on internal links — so when
+ * a user clicks into a detail page, those filters travel with them and the
+ * Back link on the detail page can rebuild the original URL.
+ *
+ * Preserves any existing query string and fragment on the input href; values
+ * already explicitly set on the href take priority and aren't overwritten.
  */
 export function useGeoLinker(): (href: string) => string {
   // Hooks-only — must be called from a client component.
   const sp = useSearchParams();
-  const enabled = sp.get("geocities") === "1";
-  return (href) => (enabled ? appendGeocities(href) : href);
+  return (href) => {
+    const hashIdx = href.indexOf("#");
+    const path = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
+    const hash = hashIdx >= 0 ? href.slice(hashIdx) : "";
+    const [basePath, existingQs] = path.split("?", 2);
+    const out = new URLSearchParams(existingQs ?? "");
+    for (const key of SHARED_KEYS) {
+      if (out.has(key)) continue;
+      for (const v of sp.getAll(key)) out.append(key, v);
+    }
+    const qs = out.toString();
+    return `${basePath}${qs ? `?${qs}` : ""}${hash}`;
+  };
 }
 
 function GeocitiesEffectInner() {

@@ -66,10 +66,12 @@ function FireSelect({
   );
 }
 
-function parseSet(param: string | null, allValues: string[], defaults: Set<string>): Set<string> {
-  if (!param) return new Set(defaults);
-  const values = param.split(",").filter((v) => allValues.includes(v));
-  return new Set(values.length > 0 ? values : defaults);
+function parseSet(values: string[], allValues: string[], defaults: Set<string>): Set<string> {
+  // Accept both repeated-key form and legacy comma-separated form for back-compat.
+  const flat = values.flatMap((v) => v.split(",")).map((s) => s.trim()).filter(Boolean);
+  if (flat.length === 0) return new Set(defaults);
+  const valid = flat.filter((v) => allValues.includes(v));
+  return new Set(valid.length > 0 ? valid : defaults);
 }
 
 function ToggleSet({
@@ -119,10 +121,10 @@ export function PhaseFilter({
   const searchParams = useSearchParams();
 
   const [activePhases, setActivePhases] = useState<Set<string>>(
-    () => parseSet(searchParams.get("phases"), ALL_PHASES, DEFAULT_ACTIVE_PHASES),
+    () => parseSet(searchParams.getAll("phases"), ALL_PHASES, DEFAULT_ACTIVE_PHASES),
   );
   const [activePlatforms, setActivePlatforms] = useState<Set<string>>(
-    () => parseSet(searchParams.get("platforms"), ALL_PLATFORMS, DEFAULT_ACTIVE_PLATFORMS),
+    () => parseSet(searchParams.getAll("platforms"), ALL_PLATFORMS, DEFAULT_ACTIVE_PLATFORMS),
   );
   const [showTimestamps, setShowTimestamps] = useState(
     () => searchParams.get("timestamps") === "1",
@@ -146,26 +148,33 @@ export function PhaseFilter({
     // this filter is responsible for.
     const params = new URLSearchParams(searchParams.toString());
 
-    function setOrDelete(key: string, value: string, isDefault: boolean) {
+    function setSingle(key: string, value: string, isDefault: boolean) {
       if (isDefault) params.delete(key);
       else params.set(key, value);
+    }
+    function setMulti(key: string, values: Iterable<string>, isDefault: boolean, order: readonly string[]) {
+      params.delete(key);
+      if (isDefault) return;
+      // Append in declaration order for stable, predictable URLs.
+      const set = new Set(values);
+      for (const v of order) if (set.has(v)) params.append(key, v);
     }
 
     const phasesStr = [...phases].sort().join(",");
     const defaultPhasesStr = [...DEFAULT_ACTIVE_PHASES].sort().join(",");
-    setOrDelete("phases", phasesStr, phasesStr === defaultPhasesStr);
+    setMulti("phases", phases, phasesStr === defaultPhasesStr, ALL_PHASES);
 
     const platformsStr = [...platforms].sort().join(",");
     const defaultPlatformsStr = [...DEFAULT_ACTIVE_PLATFORMS].sort().join(",");
-    setOrDelete("platforms", platformsStr, platformsStr === defaultPlatformsStr);
+    setMulti("platforms", platforms, platformsStr === defaultPlatformsStr, ALL_PLATFORMS);
 
-    setOrDelete("timestamps", "1", !timestamps);
+    setSingle("timestamps", "1", !timestamps);
 
     const devFireLabel = msToLabel(devFire);
-    setOrDelete("dev_fire", devFireLabel, devFireLabel === DEFAULT_DEV_FIRE);
+    setSingle("dev_fire", devFireLabel, devFireLabel === DEFAULT_DEV_FIRE);
 
     const fireLabel = msToLabel(fire);
-    setOrDelete("fire", fireLabel, fireLabel === DEFAULT_FIRE);
+    setSingle("fire", fireLabel, fireLabel === DEFAULT_FIRE);
 
     const qs = params.toString();
     const newUrl = window.location.pathname + (qs ? `?${qs}` : "");

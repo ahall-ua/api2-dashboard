@@ -11,7 +11,7 @@ const DASHBOARD_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ retried?: string; phase?: string; show?: string }>;
+  searchParams: Promise<{ retried?: string; phase?: string; show?: string | string[] }>;
 }) {
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");

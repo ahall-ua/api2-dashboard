@@ -186,21 +186,24 @@ export function getBestVersionForAccessLevel(
   row: MatrixRow,
   accessPhase: string,
   platform: Platform,
+  options?: { fallbackToAll?: boolean },
 ): VersionSummary | null {
+  const fallbackToAll = options?.fallbackToAll ?? true;
   const hierarchy: Phase[] = ["dev", "alpha", "beta", "rc", "final"];
   const idx = hierarchy.indexOf(accessPhase as Phase);
+  const allFallback = (cell: MatrixCell | undefined) =>
+    fallbackToAll && platform !== "all" ? cell?.all ?? null : null;
 
   // Non-hierarchy phase — just return exact match
   if (idx === -1) {
-    return row.cells[accessPhase]?.[platform] || row.cells[accessPhase]?.all || null;
+    return row.cells[accessPhase]?.[platform] || allFallback(row.cells[accessPhase]) || null;
   }
 
   // Hierarchy phase — find best from this level and above
   let best: VersionSummary | null = null;
   for (let i = idx; i < hierarchy.length; i++) {
     const cell = row.cells[hierarchy[i]];
-    // Check the specific platform, then fall back to "all"
-    const v = cell?.[platform] || (platform !== "all" ? cell?.all : null);
+    const v = cell?.[platform] || allFallback(cell);
     if (v && (!best || v.rawVersion > best.rawVersion)) {
       best = v;
     }

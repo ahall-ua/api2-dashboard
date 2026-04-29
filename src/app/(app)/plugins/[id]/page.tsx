@@ -3,6 +3,7 @@ import { api2FetchJson, fetchAllVersions } from "@/lib/api2-client";
 import { VersionHistory } from "@/components/version-history";
 import { BambooLinks } from "@/components/bamboo-links";
 import { fetchBambooManifest, findProductsForPlugin } from "@/lib/bamboo-manifest";
+import { buildSharedUrl } from "@/lib/shared-url";
 import type { Api2Plugin } from "@/lib/types";
 import { redirect } from "next/navigation";
 
@@ -11,11 +12,11 @@ export default async function PluginDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ geocities?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
   const sp = await searchParams;
-  const backHref = sp.geocities === "1" ? "/dashboard?geocities=1" : "/dashboard";
+  const backHref = buildSharedUrl("/dashboard", sp);
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");
 

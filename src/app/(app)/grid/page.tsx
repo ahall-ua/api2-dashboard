@@ -12,7 +12,7 @@ const GRID_SHOW_AVAILABLE = ["apps", "uadx", "uadx-luna", "uad2", "external", "p
 export default async function GridPage({
   searchParams,
 }: {
-  searchParams: Promise<{ retried?: string; show?: string }>;
+  searchParams: Promise<{ retried?: string; show?: string | string[] }>;
 }) {
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");

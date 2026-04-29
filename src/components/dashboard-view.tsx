@@ -164,11 +164,14 @@ function MonitorCard({
 }) {
   const showBranches = useShowBranches();
   const linkify = useGeoLinker();
-  const showMac = platforms.has("mac") || platforms.has("all");
-  const showWin = platforms.has("win") || platforms.has("all");
-  const all = getBestVersionForAccessLevel(row, phase, "all");
-  const mac = !all && showMac ? getBestVersionForAccessLevel(row, phase, "mac") : null;
-  const win = !all && showWin ? getBestVersionForAccessLevel(row, phase, "win") : null;
+  const allOn = platforms.has("all");
+  const macOn = platforms.has("mac");
+  const winOn = platforms.has("win");
+  const all = allOn ? getBestVersionForAccessLevel(row, phase, "all") : null;
+  // When "all" is off, don't silently fall back to the "all" version for
+  // mac/win — that defeats the purpose of toggling "all" off.
+  const mac = !all && macOn ? getBestVersionForAccessLevel(row, phase, "mac", { fallbackToAll: allOn }) : null;
+  const win = !all && winOn ? getBestVersionForAccessLevel(row, phase, "win", { fallbackToAll: allOn }) : null;
   // Pull labels + sentry links from Bamboo for the visible versions on this tile.
   // Gated on viewport visibility AND on whether the user wants bamboo or sentry
   // info — if both toggles are off, we skip the request entirely.
@@ -240,11 +243,14 @@ function filterRows(rows: MatrixRow[], query: string): MatrixRow[] {
 }
 
 function hasPhaseData(row: MatrixRow, phase: string, platforms: Set<string>): boolean {
-  const showMac = platforms.has("mac") || platforms.has("all");
-  const showWin = platforms.has("win") || platforms.has("all");
-  const all = getBestVersionForAccessLevel(row, phase, "all");
-  const mac = showMac ? getBestVersionForAccessLevel(row, phase, "mac") : null;
-  const win = showWin ? getBestVersionForAccessLevel(row, phase, "win") : null;
+  const allOn = platforms.has("all");
+  const macOn = platforms.has("mac");
+  const winOn = platforms.has("win");
+  const all = allOn ? getBestVersionForAccessLevel(row, phase, "all") : null;
+  // When "all" is off, don't silently fall back to the "all" version for
+  // mac/win — that defeats the purpose of toggling "all" off.
+  const mac = !all && macOn ? getBestVersionForAccessLevel(row, phase, "mac", { fallbackToAll: allOn }) : null;
+  const win = !all && winOn ? getBestVersionForAccessLevel(row, phase, "win", { fallbackToAll: allOn }) : null;
   return !!(mac || win || all);
 }
 
@@ -366,9 +372,9 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
   const showPlugins = visiblePluginRows.length > 0;
 
   const phase = searchParams.get("phase") || "final";
-  const platformsParam = searchParams.get("platforms");
+  const platformsValues = searchParams.getAll("platforms").flatMap((v) => v.split(","));
   const [platforms, setPlatforms] = useState<Set<string>>(
-    () => platformsParam ? new Set(platformsParam.split(",")) : new Set(["mac", "win", "all"]),
+    () => platformsValues.length > 0 ? new Set(platformsValues) : new Set(["mac", "win", "all"]),
   );
 
   const [appSearch, setAppSearch] = useState(searchParams.get("apps") || "");
@@ -384,11 +390,13 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
     setPlatforms(next);
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("platforms");
     const sorted = [...next].sort().join(",");
-    if (sorted === "all,mac,win") {
-      params.delete("platforms");
-    } else {
-      params.set("platforms", sorted);
+    if (sorted !== "all,mac,win") {
+      // Append in canonical order so the URL is stable.
+      for (const p of ["mac", "win", "all"]) {
+        if (next.has(p)) params.append("platforms", p);
+      }
     }
     const qs = params.toString();
     router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });

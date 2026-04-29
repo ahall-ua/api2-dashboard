@@ -33,13 +33,13 @@ import { parseShow } from "@/lib/show-filter-parsing";
 
 export function useActiveShow(available: readonly string[]): Set<string> {
   const searchParams = useSearchParams();
-  return parseShow(searchParams.get("show"), available);
+  return parseShow(searchParams.getAll("show"), available);
 }
 
 export function ShowFilter({ available }: { available: readonly string[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const active = parseShow(searchParams.get("show"), available);
+  const active = parseShow(searchParams.getAll("show"), available);
 
   function toggle(key: string) {
     const next = new Set(active);
@@ -47,12 +47,13 @@ export function ShowFilter({ available }: { available: readonly string[] }) {
     else next.add(key);
 
     const params = new URLSearchParams(searchParams.toString());
+    params.delete("show");
     const allOn = available.every((k) => next.has(k));
-    if (next.size === 0 || allOn) {
-      params.delete("show");
-    } else {
+    if (next.size > 0 && !allOn) {
       // Preserve declaration order so the URL is stable / predictable.
-      params.set("show", available.filter((k) => next.has(k)).join(","));
+      for (const k of available) {
+        if (next.has(k)) params.append("show", k);
+      }
     }
     const qs = params.toString();
     router.replace(window.location.pathname + (qs ? `?${qs}` : ""), { scroll: false });
