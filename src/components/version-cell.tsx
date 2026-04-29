@@ -3,7 +3,8 @@ import { formatTimestamp } from "@/lib/version-utils";
 import { PLATFORM_COLORS } from "@/lib/phase-constants";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
 import { useGeoLinker } from "@/components/geocities-effect";
-import { ExternalLink } from "lucide-react";
+import { BambooIcon, SentryIcons } from "@/components/brand-icons";
+import type { BuildInfo } from "@/lib/bamboo-api";
 
 const DEV_PHASES = new Set(["dev", "branch", "internal_dev"]);
 
@@ -81,6 +82,7 @@ function VersionLine2({
   fireMs,
   isUaConnect,
   deepLink,
+  build,
 }: {
   v: VersionSummary;
   platformLabel: string;
@@ -94,6 +96,7 @@ function VersionLine2({
   fireMs: number;
   isUaConnect: boolean;
   deepLink: ReturnType<typeof getDeepLinkConfig>;
+  build?: BuildInfo;
 }) {
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildUrl(kind, productName, productId, v.version) : null;
@@ -118,12 +121,15 @@ function VersionLine2({
           target="_blank"
           rel="noopener noreferrer"
           title="Open Bamboo build"
-          className="inline-flex ml-1 text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex ml-1 hover:opacity-80 transition-opacity"
           onClick={(e) => e.stopPropagation()}
         >
-          <ExternalLink className="w-3 h-3" />
+          <BambooIcon />
         </a>
       )}
+      <span className="ml-1 inline-flex items-center gap-1">
+        <SentryIcons sentry={build?.sentry} platform={platformLabel} />
+      </span>
       {isUaConnect ? (
         <Api2DownloadIcon kind={kind} productId={productId} versionId={v.versionId} />
       ) : deepLink?.archiveName ? (
@@ -145,6 +151,7 @@ export function VersionCell({
   showTimestamps = false,
   devFireMs = 0,
   fireMs = 7 * 24 * 60 * 60 * 1000,
+  builds,
 }: {
   mac: VersionSummary | null;
   win: VersionSummary | null;
@@ -157,6 +164,7 @@ export function VersionCell({
   showTimestamps?: boolean;
   devFireMs?: number;
   fireMs?: number;
+  builds?: Record<string, BuildInfo>;
 }) {
   if (!mac && !win && !all) {
     return <td className="px-3 py-2 text-center text-muted-foreground/30">-</td>;
@@ -169,9 +177,9 @@ export function VersionCell({
   return (
     <td className="px-3 py-2 text-xs">
       <div className="space-y-1">
-        {all && <VersionLine2 v={all} platformLabel="all" {...common} />}
-        {!all && mac && <VersionLine2 v={mac} platformLabel="mac" {...common} />}
-        {!all && win && <VersionLine2 v={win} platformLabel="win" {...common} />}
+        {all && <VersionLine2 v={all} platformLabel="all" {...common} build={builds?.[all.version]} />}
+        {!all && mac && <VersionLine2 v={mac} platformLabel="mac" {...common} build={builds?.[mac.version]} />}
+        {!all && win && <VersionLine2 v={win} platformLabel="win" {...common} build={builds?.[win.version]} />}
       </div>
     </td>
   );

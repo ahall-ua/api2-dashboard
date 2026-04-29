@@ -20,11 +20,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Api2Version } from "@/lib/types";
-import { ExternalLink } from "lucide-react";
+import { BambooIcon, SentryIcons } from "@/components/brand-icons";
+import type { BuildInfo as BambooBuildInfo } from "@/lib/bamboo-api";
 
 const DEV_PHASES = new Set(["dev", "branch", "internal_dev"]);
 
-type BuildInfo = { resultKey: string; browseUrl: string; state: string };
+type BuildInfo = BambooBuildInfo;
 // Keyed by formatted (non-padded) version string, matching Bamboo's buildReleaseName
 type BuildMap = Record<string, BuildInfo>;
 
@@ -249,11 +250,17 @@ export function VersionHistory({
                               target="_blank"
                               rel="noopener noreferrer"
                               title={`Bamboo: ${build.resultKey}`}
-                              className="inline-flex text-muted-foreground hover:text-foreground transition-colors"
+                              className="inline-flex hover:opacity-80 transition-opacity"
                             >
-                              <ExternalLink className="w-3 h-3" />
+                              <BambooIcon />
                             </a>
                           )}
+                          <SentryIcons sentry={build?.sentry} platform={v.platform} />
+                          {build?.labels?.map((l) => (
+                            <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-secondary-foreground">
+                              {l}
+                            </span>
+                          ))}
                           {shouldShowFire(v.phase, v.created_at, devFireMs, fireMs) && (
                             <span title="Recent deploy">🔥</span>
                           )}

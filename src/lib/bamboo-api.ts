@@ -37,27 +37,77 @@ export interface BambooBuildResult {
   buildCompletedTime?: string;
 }
 
+export interface SentryLinks {
+  mac?: string;
+  win?: string;
+}
+
 export interface BuildInfo {
   resultKey: string;
   browseUrl: string;
   state: string;
+  labels?: string[];
+  sentry?: SentryLinks;
 }
 
 export function bambooBrowseUrl(buildResultKey: string): string {
   return `${BAMBOO_ROOT}/browse/${buildResultKey}`;
 }
 
-function toBuildInfo(r: BambooBuildResult): BuildInfo {
-  return {
+interface BambooVariable { name: string; value: string }
+interface BambooLabel { name: string }
+interface BambooComment { content?: string }
+type BambooBuildExtras = BambooBuildResult & {
+  variables?: { variable?: BambooVariable | BambooVariable[] };
+  labels?: { label?: BambooLabel | BambooLabel[] };
+  comments?: { comment?: BambooComment | BambooComment[] };
+};
+
+function toArray<T>(x: T | T[] | undefined): T[] {
+  if (!x) return [];
+  return Array.isArray(x) ? x : [x];
+}
+
+function extractLabels(r: BambooBuildExtras): string[] {
+  return toArray(r.labels?.label).map((l) => l.name).filter(Boolean);
+}
+
+/**
+ * Find Sentry release URLs in build comments and bucket by platform.
+ * Looks at the text surrounding each URL for "mac"/"win" markers.
+ */
+function extractSentry(r: BambooBuildExtras): SentryLinks | undefined {
+  const comments = toArray(r.comments?.comment);
+  if (comments.length === 0) return undefined;
+  const text = comments.map((c) => c.content ?? "").join("\n");
+  const result: SentryLinks = {};
+  const re = /https:\/\/[^\s"'<>)]*sentry\.io[^\s"'<>)]*/gi;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    const url = match[0];
+    const ctx = text.slice(Math.max(0, match.index - 60), match.index).toLowerCase();
+    const slug = url.toLowerCase();
+    const isMac = /\b(mac|osx|darwin)\b/.test(ctx) || /\b(mac|osx|darwin)\b/.test(slug);
+    const isWin = /\b(win|windows|pc)\b/.test(ctx) || /\b(win|windows|pc)\b/.test(slug);
+    if (isMac && !result.mac) result.mac = url;
+    else if (isWin && !result.win) result.win = url;
+    else if (!result.mac) result.mac = url;
+    else if (!result.win) result.win = url;
+  }
+  return result.mac || result.win ? result : undefined;
+}
+
+function toBuildInfo(r: BambooBuildExtras): BuildInfo {
+  const labels = extractLabels(r);
+  const sentry = extractSentry(r);
+  const info: BuildInfo = {
     resultKey: r.buildResultKey,
     browseUrl: bambooBrowseUrl(r.buildResultKey),
     state: r.buildState,
   };
-}
-
-interface BambooVariable {
-  name: string;
-  value: string;
+  if (labels.length > 0) info.labels = labels;
+  if (sentry) info.sentry = sentry;
+  return info;
 }
 
 /**
@@ -68,32 +118,24 @@ interface BambooVariable {
 async function fetchPlanResults(
   planKey: string,
   limit: number = 25,
-): Promise<BambooBuildResult[]> {
+): Promise<BambooBuildExtras[]> {
+  const expand = [
+    "results.result.variables.variable",
+    "results.result.labels.label",
+    "results.result.comments.comment",
+  ].join(",");
   const data = await bambooFetch<{
-    results?: {
-      result?: (BambooBuildResult & {
-        variables?: { variable?: BambooVariable | BambooVariable[] };
-      }) | (BambooBuildResult & {
-        variables?: { variable?: BambooVariable | BambooVariable[] };
-      })[];
-    };
-  }>(`/result/${planKey}?includeAllStates=true&max-results=${limit}&expand=results.result.variables`);
+    results?: { result?: BambooBuildExtras | BambooBuildExtras[] };
+  }>(`/result/${planKey}?includeAllStates=true&max-results=${limit}&expand=${expand}`);
 
   if (!data) return [];
   const raw = data.results?.result;
   if (!raw) return [];
   const results = Array.isArray(raw) ? raw : [raw];
 
-  // Extract inject.uaReleaseName from variables into buildReleaseName
   return results.map((r) => {
-    const vars = r.variables?.variable;
-    if (vars) {
-      const list = Array.isArray(vars) ? vars : [vars];
-      const releaseVar = list.find((v) => v.name === "inject.uaReleaseName");
-      if (releaseVar) {
-        r.buildReleaseName = releaseVar.value;
-      }
-    }
+    const releaseVar = toArray(r.variables?.variable).find((v) => v.name === "inject.uaReleaseName");
+    if (releaseVar) r.buildReleaseName = releaseVar.value;
     return r;
   });
 }
@@ -171,23 +213,14 @@ export async function buildReleaseNameMap(
 async function fetchBuildWithReleaseName(
   planKey: string,
   buildNumber: number,
-): Promise<(BambooBuildResult & { buildReleaseName?: string }) | null> {
-  const data = await bambooFetch<
-    BambooBuildResult & {
-      variables?: { variable?: BambooVariable | BambooVariable[] };
-    }
-  >(`/result/${planKey}-${buildNumber}?expand=variables`);
-
+): Promise<BambooBuildExtras | null> {
+  const expand = ["variables.variable", "labels.label", "comments.comment"].join(",");
+  const data = await bambooFetch<BambooBuildExtras>(
+    `/result/${planKey}-${buildNumber}?expand=${expand}`,
+  );
   if (!data) return null;
-
-  const vars = data.variables?.variable;
-  if (vars) {
-    const list = Array.isArray(vars) ? vars : [vars];
-    const releaseVar = list.find((v) => v.name === "inject.uaReleaseName");
-    if (releaseVar) {
-      data.buildReleaseName = releaseVar.value;
-    }
-  }
+  const releaseVar = toArray(data.variables?.variable).find((v) => v.name === "inject.uaReleaseName");
+  if (releaseVar) data.buildReleaseName = releaseVar.value;
   return data;
 }
 

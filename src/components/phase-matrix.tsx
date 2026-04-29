@@ -5,7 +5,9 @@ import { PHASE_COLORS } from "@/lib/phase-constants";
 import { VersionCell } from "@/components/version-cell";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
 import { useGeoLinker } from "@/components/geocities-effect";
-import { ExternalLink } from "lucide-react";
+import { BambooIcon } from "@/components/brand-icons";
+import { useBuildInfo } from "@/lib/use-build-info";
+import type { BuildInfo } from "@/lib/bamboo-api";
 import {
   Table,
   TableBody,
@@ -14,6 +16,97 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+
+function MatrixDataRow({
+  row,
+  phases,
+  kind,
+  activePlatforms,
+  showTimestamps,
+  showBranches,
+  devFireMs,
+  fireMs,
+  linkify,
+}: {
+  row: MatrixRow;
+  phases: string[];
+  kind: "apps" | "plugins";
+  activePlatforms: Set<string>;
+  showTimestamps: boolean;
+  showBranches: boolean;
+  devFireMs: number;
+  fireMs: number;
+  linkify: (s: string) => string;
+}) {
+  // Collect every visible release name for this row, ask Bamboo once.
+  const versions: string[] = [];
+  for (const phase of phases) {
+    const cell = row.cells[phase];
+    if (!cell) continue;
+    if (activePlatforms.has("mac") && cell.mac) versions.push(cell.mac.version);
+    if (activePlatforms.has("win") && cell.win) versions.push(cell.win.version);
+    if (activePlatforms.has("all") && cell.all) versions.push(cell.all.version);
+  }
+  const builds = useBuildInfo(row.name, kind, versions);
+
+  const labelSet = new Set<string>();
+  for (const b of Object.values(builds)) for (const l of b.labels ?? []) labelSet.add(l);
+
+  return (
+    <TableRow className="border-border/30 hover:bg-accent/50 transition-colors">
+      <TableCell className="font-medium">
+        <a
+          href={linkify(`/${kind}/${row.id}`)}
+          className="text-primary hover:text-primary/80 hover:underline transition-colors"
+        >
+          {row.description || row.name}
+        </a>
+        {row.bambooPlanUrl && (
+          <a
+            href={row.bambooPlanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Bamboo plan"
+            className="inline-flex ml-1.5 hover:opacity-80 transition-opacity align-middle"
+          >
+            <BambooIcon />
+          </a>
+        )}
+        {showBranches && <BranchTag branch={row.branch} />}
+        <div className="text-xs text-muted-foreground">{row.name}</div>
+        {labelSet.size > 0 && (
+          <div className="flex gap-1 flex-wrap mt-1">
+            {[...labelSet].map((l) => (
+              <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-secondary-foreground">
+                {l}
+              </span>
+            ))}
+          </div>
+        )}
+      </TableCell>
+      {phases.map((phase) => {
+        const cell = row.cells[phase];
+        return (
+          <VersionCell
+            key={phase}
+            mac={activePlatforms.has("mac") ? (cell?.mac || null) : null}
+            win={activePlatforms.has("win") ? (cell?.win || null) : null}
+            all={activePlatforms.has("all") ? (cell?.all || null) : null}
+            kind={kind}
+            productId={row.id}
+            productName={row.name}
+            productType={row.type}
+            phase={phase}
+            showTimestamps={showTimestamps}
+            devFireMs={devFireMs}
+            fireMs={fireMs}
+            builds={builds}
+          />
+        );
+      })}
+    </TableRow>
+  );
+}
 
 function MatrixTable({
   rows,
@@ -51,48 +144,18 @@ function MatrixTable({
         </TableHeader>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.id} className="border-border/30 hover:bg-accent/50 transition-colors">
-              <TableCell className="font-medium">
-                <a
-                  href={linkify(`/${kind}/${row.id}`)}
-                  className="text-primary hover:text-primary/80 hover:underline transition-colors"
-                >
-                  {row.description || row.name}
-                </a>
-                {row.bambooPlanUrl && (
-                  <a
-                    href={row.bambooPlanUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Open Bamboo plan"
-                    className="inline-flex ml-1.5 text-muted-foreground hover:text-foreground transition-colors align-middle"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-                {showBranches && <BranchTag branch={row.branch} />}
-                <div className="text-xs text-muted-foreground">{row.name}</div>
-              </TableCell>
-              {phases.map((phase) => {
-                const cell = row.cells[phase];
-                return (
-                  <VersionCell
-                    key={phase}
-                    mac={activePlatforms.has("mac") ? (cell?.mac || null) : null}
-                    win={activePlatforms.has("win") ? (cell?.win || null) : null}
-                    all={activePlatforms.has("all") ? (cell?.all || null) : null}
-                    kind={kind}
-                    productId={row.id}
-                    productName={row.name}
-                    productType={row.type}
-                    phase={phase}
-                    showTimestamps={showTimestamps}
-                    devFireMs={devFireMs}
-                    fireMs={fireMs}
-                  />
-                );
-              })}
-            </TableRow>
+            <MatrixDataRow
+              key={row.id}
+              row={row}
+              phases={phases}
+              kind={kind}
+              activePlatforms={activePlatforms}
+              showTimestamps={showTimestamps}
+              showBranches={showBranches}
+              devFireMs={devFireMs}
+              fireMs={fireMs}
+              linkify={linkify}
+            />
           ))}
         </TableBody>
       </Table>

@@ -9,7 +9,9 @@ import { displayType, groupByType, getBestVersionForAccessLevel, formatTimestamp
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
 import { useGeoLinker } from "@/components/geocities-effect";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
-import { ExternalLink } from "lucide-react";
+import { useBuildInfo } from "@/lib/use-build-info";
+import type { BuildInfo } from "@/lib/bamboo-api";
+import { BambooIcon, SentryIcons } from "@/components/brand-icons";
 import { BranchesToggle, BranchTag, useShowBranches } from "@/components/branches-toggle";
 import {
   PLATFORM_COLORS,
@@ -80,7 +82,7 @@ function bambooBuildRedirectUrl(
 // Product types that don't have Bamboo plans in the manifest.
 const NO_BAMBOO_TYPES = new Set(["lunacomponent_with_wrappers", "lunacomponent"]);
 
-function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs, showTimestamps }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number; showTimestamps: boolean }) {
+function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs, showTimestamps, build }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number; showTimestamps: boolean; build?: BuildInfo }) {
   const platformColor = PLATFORM_COLORS[v.platform] || "";
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildRedirectUrl(kind, productName, v.version) : null;
@@ -112,11 +114,12 @@ function VersionLine({ v, phase, kind, productId, productName, productType, devF
           target="_blank"
           rel="noopener noreferrer"
           title="Open Bamboo build"
-          className="inline-flex text-muted-foreground hover:text-foreground transition-colors"
+          className="inline-flex hover:opacity-80 transition-opacity"
         >
-          <ExternalLink className="w-3 h-3" />
+          <BambooIcon />
         </a>
       )}
+      <SentryIcons sentry={build?.sentry} platform={v.platform} />
       {isUaConnect ? (
         <a
           href="#"
@@ -165,6 +168,9 @@ function MonitorCard({
   const all = getBestVersionForAccessLevel(row, phase, "all");
   const mac = !all && showMac ? getBestVersionForAccessLevel(row, phase, "mac") : null;
   const win = !all && showWin ? getBestVersionForAccessLevel(row, phase, "win") : null;
+  // Pull labels + sentry links from Bamboo for the visible versions on this tile.
+  const visibleVersions = [all?.version, mac?.version, win?.version].filter((s): s is string => !!s);
+  const builds = useBuildInfo(kind === "apps" ? row.name : row.name, kind, visibleVersions);
   if (!mac && !win && !all) return null;
 
   const borderColor = getTypeBorderColor(row.type);
@@ -181,18 +187,35 @@ function MonitorCard({
             target="_blank"
             rel="noopener noreferrer"
             title="Open Bamboo plan"
-            className="inline-flex ml-1.5 text-muted-foreground hover:text-foreground transition-colors align-middle"
+            className="inline-flex ml-1.5 hover:opacity-80 transition-opacity align-middle"
           >
-            <ExternalLink className="w-3 h-3" />
+            <BambooIcon />
           </a>
         )}
         {showBranches && <BranchTag branch={row.branch} />}
         <div className="text-xs text-muted-foreground">{row.name}</div>
+        {(() => {
+          const labelSet = new Set<string>();
+          for (const v of [all?.version, mac?.version, win?.version]) {
+            const lbls = v ? builds[v]?.labels : undefined;
+            if (lbls) for (const l of lbls) labelSet.add(l);
+          }
+          if (labelSet.size === 0) return null;
+          return (
+            <div className="flex gap-1 flex-wrap mt-1">
+              {[...labelSet].map((l) => (
+                <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-secondary-foreground">
+                  {l}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
       </div>
       <div className="space-y-1">
-        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />}
-        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />}
-        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} />}
+        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[all.version]} />}
+        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[mac.version]} />}
+        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[win.version]} />}
       </div>
     </div>
   );

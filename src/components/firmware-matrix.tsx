@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
 import { useGeoLinker } from "@/components/geocities-effect";
-import { ExternalLink } from "lucide-react";
+import { BambooIcon } from "@/components/brand-icons";
 import {
   Table,
   TableBody,
@@ -73,7 +73,7 @@ function FirmwareCell({
                 className="inline-flex ml-1 text-muted-foreground hover:text-foreground transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
-                <ExternalLink className="w-3 h-3" />
+                <BambooIcon />
               </a>
             </div>
           );
@@ -139,7 +139,7 @@ export function FirmwareMatrix({
                     title="Open Bamboo plan"
                     className="inline-flex ml-1.5 text-muted-foreground hover:text-foreground transition-colors align-middle"
                   >
-                    <ExternalLink className="w-3 h-3" />
+                    <BambooIcon />
                   </a>
                 )}
                 {showBranches && <BranchTag branch={row.branch} />}
