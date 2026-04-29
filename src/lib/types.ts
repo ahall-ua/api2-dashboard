@@ -85,7 +85,9 @@ export const PLATFORMS: Platform[] = ["mac", "win"];
 
 // Firmware platform values (codenames for pedal/Apollo/mic hardware).
 // Anything in api2 with a `platform` not in {mac, win, all} is firmware.
-// To discover new values: hit /api/debug/platforms while logged in.
+// To discover new values when new pedals ship: query /apps/{id}/versions
+// directly via the api2 client and inspect the distinct `platform` values
+// across products that don't appear in the matrix.
 export const FIRMWARE_PLATFORMS = [
   "emperor",
   "prince",
