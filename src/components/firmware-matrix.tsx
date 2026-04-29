@@ -3,6 +3,7 @@ import { getActivePhases } from "@/lib/version-utils";
 import { formatTimestamp } from "@/lib/version-utils";
 import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
+import { BranchTag, useShowBranches } from "@/components/branches-toggle";
 import {
   Table,
   TableBody,
@@ -67,6 +68,7 @@ export function FirmwareMatrix({
   devFireMs?: number;
   fireMs?: number;
 }) {
+  const showBranches = useShowBranches();
   if (rows.length === 0) {
     return <p className="text-muted-foreground text-sm">No firmware available.</p>;
   }
@@ -100,6 +102,7 @@ export function FirmwareMatrix({
                 >
                   {row.description || row.name}
                 </a>
+                {showBranches && <BranchTag branch={row.branch} />}
                 <div className="text-xs text-muted-foreground">{row.name}</div>
               </TableCell>
               {phases.map((phase) => (

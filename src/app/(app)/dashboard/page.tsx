@@ -1,6 +1,7 @@
 import { getReadOnlyToken, getSessionEnv, getSession } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { fetchMatrix, Api2AuthError } from "@/lib/fetch-matrix";
+import { fetchBambooManifest, findBranchForApp, findBranchForPlugin } from "@/lib/bamboo-manifest";
 import { DashboardView } from "@/components/dashboard-view";
 
 export default async function DashboardPage({
@@ -29,6 +30,12 @@ export default async function DashboardPage({
       redirect(`/api/auth/refresh?next=${encodeURIComponent(next)}`);
     }
     throw err;
+  }
+
+  const manifest = await fetchBambooManifest();
+  if (manifest) {
+    for (const r of appRows) r.branch = findBranchForApp(manifest, r.name);
+    for (const r of pluginRows) r.branch = findBranchForPlugin(manifest, r.name);
   }
 
   return <DashboardView appRows={appRows} pluginRows={pluginRows} />;

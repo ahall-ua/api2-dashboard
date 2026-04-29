@@ -15,6 +15,7 @@ const COLORS = {
   violet:  { on: "bg-violet-600 text-violet-100",    off: "bg-violet-900/30 text-violet-600" },
   amber:   { on: "bg-amber-600 text-amber-100",      off: "bg-amber-900/30 text-amber-600" },
   pink:    { on: "bg-pink-600 text-pink-100",        off: "bg-pink-900/30 text-pink-600" },
+  rose:    { on: "bg-rose-600 text-rose-100",        off: "bg-rose-900/30 text-rose-600" },
   zinc:    { on: "bg-zinc-600 text-zinc-100",        off: "bg-zinc-800/50 text-zinc-500" },
 };
 
@@ -23,6 +24,7 @@ export const SHOW_OPTIONS: Record<string, ShowOption> = {
   uadx:           { key: "uadx",          label: "uadx",       ...COLORS.sky },
   "uadx-luna":    { key: "uadx-luna",     label: "uadx-luna",  ...COLORS.violet },
   uad2:           { key: "uad2",          label: "uad2",       ...COLORS.amber },
+  external:       { key: "external",      label: "external",   ...COLORS.rose },
   "plugins-other":{ key: "plugins-other", label: "other",      ...COLORS.zinc },
   firmware:       { key: "firmware",      label: "Firmware",   ...COLORS.pink },
 };

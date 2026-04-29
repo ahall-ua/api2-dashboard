@@ -94,6 +94,14 @@ export function findProductsForApp(
  * UAD2 plugins: match if the plugin name appears in ua_api2_plugins (comma-separated).
  * HBplugs: match by product key convention (product key === plugin name).
  */
+export function findBranchForApp(manifest: BambooManifest, appName: string): string | undefined {
+  return findProductsForApp(manifest, appName)[0]?.ua_branch;
+}
+
+export function findBranchForPlugin(manifest: BambooManifest, pluginName: string): string | undefined {
+  return findProductsForPlugin(manifest, pluginName)[0]?.ua_branch;
+}
+
 export function findProductsForPlugin(
   manifest: BambooManifest,
   api2PluginName: string,

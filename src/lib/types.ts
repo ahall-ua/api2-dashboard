@@ -127,4 +127,6 @@ export interface MatrixRow {
   cells: Record<string, MatrixCell>;
   // phase -> firmware platform name -> latest VersionSummary
   firmwareCells: Record<string, Record<string, VersionSummary>>;
+  // Bamboo CI branch (from manifest), populated server-side. May be undefined.
+  branch?: string;
 }

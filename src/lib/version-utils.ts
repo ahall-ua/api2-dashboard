@@ -236,9 +236,11 @@ const TYPE_DISPLAY_NAMES: Record<string, string> = {
   lunacomponent_with_wrappers: "uadx",
   lunacomponent: "uadx-luna",
   uad2: "uad2",
+  external: "external",
+  native: "other",
 };
 
-const TYPE_ORDER = ["uadx", "uadx-luna", "uad2"];
+const TYPE_ORDER = ["uadx", "uadx-luna", "uad2", "external", "other"];
 
 export function displayType(rawType: string): string {
   return TYPE_DISPLAY_NAMES[rawType] || rawType || "other";

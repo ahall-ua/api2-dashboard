@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { displayType, groupByType, getBestVersionForAccessLevel } from "@/lib/version-utils";
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
+import { BranchesToggle, BranchTag, useShowBranches } from "@/components/branches-toggle";
 import {
   PLATFORM_COLORS,
   ALL_PLATFORMS, PLATFORM_TOGGLE_COLORS,
@@ -108,6 +109,7 @@ function MonitorCard({
   devFireMs: number;
   fireMs: number;
 }) {
+  const showBranches = useShowBranches();
   const showMac = platforms.has("mac") || platforms.has("all");
   const showWin = platforms.has("win") || platforms.has("all");
   const all = getBestVersionForAccessLevel(row, phase, "all");
@@ -123,6 +125,7 @@ function MonitorCard({
         <a href={`/${kind}/${row.id}`} className="font-semibold text-foreground text-sm leading-tight hover:underline">
           {row.description || row.name}
         </a>
+        {showBranches && <BranchTag branch={row.branch} />}
         <div className="text-xs text-muted-foreground">{row.name}</div>
       </div>
       <div className="space-y-1">
@@ -256,14 +259,14 @@ function SearchableMonitorSection({
 function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginRows: MatrixRow[] }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const showAvailable = ["apps", "uadx", "uadx-luna", "uad2", "plugins-other"] as const;
+  const showAvailable = ["apps", "uadx", "uadx-luna", "uad2", "external", "plugins-other"] as const;
   const activeShow = useActiveShow(showAvailable);
 
+  const KNOWN_PLUGIN_TYPES = new Set(["uadx", "uadx-luna", "uad2", "external"]);
   const visiblePluginRows = pluginRows.filter((r) => {
     const t = displayType(r.type);
-    if (activeShow.has(t)) return true;
-    if (t !== "uadx" && t !== "uadx-luna" && t !== "uad2") return activeShow.has("plugins-other");
-    return false;
+    if (KNOWN_PLUGIN_TYPES.has(t)) return activeShow.has(t);
+    return activeShow.has("plugins-other");
   });
   const showApps = activeShow.has("apps");
   const showPlugins = visiblePluginRows.length > 0;
@@ -372,8 +375,9 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
         </span>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 flex items-center gap-4 flex-wrap">
         <ShowFilter available={showAvailable} />
+        <BranchesToggle />
       </div>
 
       <div className="space-y-8">

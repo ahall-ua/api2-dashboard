@@ -3,6 +3,7 @@ import { getActivePhases, groupByType } from "@/lib/version-utils";
 import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { VersionCell } from "@/components/version-cell";
+import { BranchTag, useShowBranches } from "@/components/branches-toggle";
 import {
   Table,
   TableBody,
@@ -29,6 +30,7 @@ function MatrixTable({
   devFireMs: number;
   fireMs: number;
 }) {
+  const showBranches = useShowBranches();
   return (
     <div className="border border-border/50 rounded-lg bg-card/50">
       <Table>
@@ -54,6 +56,7 @@ function MatrixTable({
                 >
                   {row.description || row.name}
                 </a>
+                {showBranches && <BranchTag branch={row.branch} />}
                 <div className="text-xs text-muted-foreground">{row.name}</div>
               </TableCell>
               {phases.map((phase) => {

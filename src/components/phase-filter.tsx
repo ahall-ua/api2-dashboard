@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { BranchesToggle } from "@/components/branches-toggle";
 import {
   ALL_PHASES, DEFAULT_ACTIVE_PHASES, PHASE_TOGGLE_COLORS,
   ALL_PLATFORMS, DEFAULT_ACTIVE_PLATFORMS, PLATFORM_TOGGLE_COLORS,
@@ -107,9 +108,11 @@ function ToggleSet({
 export function PhaseFilter({
   children,
   showTimestampsOption = true,
+  showBranchesOption = true,
 }: {
   children: (state: FilterState) => React.ReactNode;
   showTimestampsOption?: boolean;
+  showBranchesOption?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -225,9 +228,12 @@ export function PhaseFilter({
         <FireSelect label="dev" value={devFireMs} onChange={handleDevFireChange} />
         <FireSelect label="other" value={fireMs} onChange={handleFireChange} />
 
+        {(showBranchesOption || showTimestampsOption) && (
+          <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
+        )}
+        {showBranchesOption && <BranchesToggle />}
         {showTimestampsOption && (
           <>
-            <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
             <button onClick={handleToggleTimestamps}>
               <Badge
                 variant="secondary"

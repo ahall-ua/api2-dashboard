@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getValidToken, getSession, getSessionEnv } from "@/lib/session";
 import { fetchMatrix } from "@/lib/fetch-matrix";
 import { hasStandardVersions, hasFirmwareVersions } from "@/lib/version-utils";
+import { fetchBambooManifest, findBranchForApp, findBranchForPlugin } from "@/lib/bamboo-manifest";
 import { ALL_PHASES } from "@/lib/phase-constants";
 
 export async function GET(request: Request) {
@@ -18,10 +19,16 @@ export async function GET(request: Request) {
   const session = await getSession();
   const username = session.username;
 
-  const [allAppRows, pluginRows] = await Promise.all([
+  const [allAppRows, pluginRows, manifest] = await Promise.all([
     fetchMatrix("/apps", token, env, { includeFirmware: true, username, phases: [phase] }),
     fetchMatrix("/plugins", token, env, { username, phases: [phase] }),
+    fetchBambooManifest(),
   ]);
+
+  if (manifest) {
+    for (const r of allAppRows) r.branch = findBranchForApp(manifest, r.name);
+    for (const r of pluginRows) r.branch = findBranchForPlugin(manifest, r.name);
+  }
 
   return NextResponse.json({
     phase,
