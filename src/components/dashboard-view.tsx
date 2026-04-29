@@ -9,7 +9,7 @@ import { displayType, groupByType, getBestVersionForAccessLevel, formatTimestamp
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
 import { useGeoLinker } from "@/components/geocities-effect";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
-import { useBuildInfo } from "@/lib/use-build-info";
+import { useBuildInfo, useOnVisible } from "@/lib/use-build-info";
 import type { BuildInfo } from "@/lib/bamboo-api";
 import { BambooIcon, SentryIcons } from "@/components/brand-icons";
 import { BranchesToggle, BranchTag, useShowBranches } from "@/components/branches-toggle";
@@ -169,14 +169,17 @@ function MonitorCard({
   const mac = !all && showMac ? getBestVersionForAccessLevel(row, phase, "mac") : null;
   const win = !all && showWin ? getBestVersionForAccessLevel(row, phase, "win") : null;
   // Pull labels + sentry links from Bamboo for the visible versions on this tile.
+  // Gated on actual viewport visibility — avoids hammering Bamboo on initial
+  // load when many tiles render off-screen.
   const visibleVersions = [all?.version, mac?.version, win?.version].filter((s): s is string => !!s);
-  const builds = useBuildInfo(kind === "apps" ? row.name : row.name, kind, visibleVersions);
+  const { ref: cardRef, visible: cardVisible } = useOnVisible<HTMLDivElement>();
+  const builds = useBuildInfo(row.name, kind, visibleVersions, cardVisible);
   if (!mac && !win && !all) return null;
 
   const borderColor = getTypeBorderColor(row.type);
 
   return (
-    <div className={`geo-fire-host border border-border/50 border-l-4 ${borderColor} rounded-lg bg-card/70 p-4 flex flex-col gap-2 hover:bg-card transition-colors`}>
+    <div ref={cardRef} className={`geo-fire-host border border-border/50 border-l-4 ${borderColor} rounded-lg bg-card/70 p-4 flex flex-col gap-2 hover:bg-card transition-colors`}>
       <div>
         <a href={linkify(`/${kind}/${row.id}`)} className="font-semibold text-foreground text-sm leading-tight hover:underline">
           {row.description || row.name}

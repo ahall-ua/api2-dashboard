@@ -6,8 +6,7 @@ import { VersionCell } from "@/components/version-cell";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
 import { useGeoLinker } from "@/components/geocities-effect";
 import { BambooIcon } from "@/components/brand-icons";
-import { useBuildInfo } from "@/lib/use-build-info";
-import type { BuildInfo } from "@/lib/bamboo-api";
+import { useBuildInfo, useOnVisible } from "@/lib/use-build-info";
 import {
   Table,
   TableBody,
@@ -47,13 +46,15 @@ function MatrixDataRow({
     if (activePlatforms.has("win") && cell.win) versions.push(cell.win.version);
     if (activePlatforms.has("all") && cell.all) versions.push(cell.all.version);
   }
-  const builds = useBuildInfo(row.name, kind, versions);
+  // Defer the bamboo lookup until the row is on (or near) the screen.
+  const { ref: rowRef, visible: rowVisible } = useOnVisible<HTMLTableRowElement>();
+  const builds = useBuildInfo(row.name, kind, versions, rowVisible);
 
   const labelSet = new Set<string>();
   for (const b of Object.values(builds)) for (const l of b.labels ?? []) labelSet.add(l);
 
   return (
-    <TableRow className="border-border/30 hover:bg-accent/50 transition-colors">
+    <TableRow ref={rowRef} className="border-border/30 hover:bg-accent/50 transition-colors">
       <TableCell className="font-medium">
         <a
           href={linkify(`/${kind}/${row.id}`)}

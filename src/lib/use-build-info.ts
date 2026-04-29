@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { BuildInfo } from "@/lib/bamboo-api";
 
 // Module-level promise cache shared across hook callers, so repeated
@@ -8,15 +8,47 @@ import type { BuildInfo } from "@/lib/bamboo-api";
 const cache = new Map<string, Promise<Record<string, BuildInfo>>>();
 
 /**
+ * Returns a ref + visibility flag. Element becomes "visible" once it scrolls
+ * within `rootMargin` of the viewport, and stays visible thereafter. Used
+ * to defer expensive lookups until a row/tile is actually on-screen.
+ */
+export function useOnVisible<T extends Element>(rootMargin = "300px"): {
+  ref: React.RefObject<T | null>;
+  visible: boolean;
+} {
+  const ref = useRef<T | null>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (visible) return;
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [visible, rootMargin]);
+  return { ref, visible };
+}
+
+/**
  * Fetch build info for a product's release names from the bamboo route.
- * Returns an object keyed by release name. Loads asynchronously after mount;
- * empty object until the request resolves. Safe to call from any client
- * component — multiple components asking for the same set share one request.
+ * Returns an object keyed by release name. Loads asynchronously when the
+ * `enabled` flag is true (defer until visible to avoid swarming Bamboo).
+ * Multiple components asking for the same set share one request via the
+ * module-level promise cache.
  */
 export function useBuildInfo(
   productName: string | undefined,
   kind: "apps" | "plugins",
   releaseNames: string[],
+  enabled = true,
 ): Record<string, BuildInfo> {
   const [data, setData] = useState<Record<string, BuildInfo>>({});
   const key = productName && releaseNames.length > 0
@@ -24,7 +56,7 @@ export function useBuildInfo(
     : null;
 
   useEffect(() => {
-    if (!key || !productName) return;
+    if (!enabled || !key || !productName) return;
     let cancelled = false;
     let promise = cache.get(key);
     if (!promise) {
@@ -45,7 +77,7 @@ export function useBuildInfo(
     return () => {
       cancelled = true;
     };
-  }, [key, productName, kind, releaseNames]);
+  }, [enabled, key, productName, kind, releaseNames]);
 
   return data;
 }
