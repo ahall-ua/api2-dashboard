@@ -15,7 +15,7 @@ export function AppNav({ username, env }: { username?: string; env: string }) {
   // `phase` (it uses `phases` plural for column visibility), but preserving
   // it means dashboard → grid → dashboard remembers the user's phase choice.
   const carryParams = new URLSearchParams();
-  for (const key of ["show", "phase", "branches", "geocities"]) {
+  for (const key of ["show", "phase", "branches", "bamboo", "sentry", "geocities"]) {
     const val = searchParams.get(key);
     if (val) carryParams.set(key, val);
   }

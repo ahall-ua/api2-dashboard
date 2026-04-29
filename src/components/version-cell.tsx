@@ -83,6 +83,8 @@ function VersionLine2({
   isUaConnect,
   deepLink,
   build,
+  showBamboo,
+  showSentry,
 }: {
   v: VersionSummary;
   platformLabel: string;
@@ -97,6 +99,8 @@ function VersionLine2({
   isUaConnect: boolean;
   deepLink: ReturnType<typeof getDeepLinkConfig>;
   build?: BuildInfo;
+  showBamboo: boolean;
+  showSentry: boolean;
 }) {
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildUrl(kind, productName, productId, v.version) : null;
@@ -115,7 +119,7 @@ function VersionLine2({
         <span className={`${platformColor} ml-1.5 font-medium`}>{platformLabel}</span>
         {showTimestamps && <span className="text-muted-foreground ml-1.5">{formatTimestamp(v.createdAt)}</span>}
       </a>
-      {bambooUrl && (
+      {showBamboo && bambooUrl && (
         <a
           href={bambooUrl}
           target="_blank"
@@ -127,9 +131,11 @@ function VersionLine2({
           <BambooIcon />
         </a>
       )}
-      <span className="ml-1 inline-flex items-center gap-1">
-        <SentryIcons sentry={build?.sentry} platform={platformLabel} />
-      </span>
+      {showSentry && (
+        <span className="ml-1 inline-flex items-center gap-1">
+          <SentryIcons sentry={build?.sentry} platform={platformLabel} />
+        </span>
+      )}
       {isUaConnect ? (
         <Api2DownloadIcon kind={kind} productId={productId} versionId={v.versionId} />
       ) : deepLink?.archiveName ? (
@@ -153,6 +159,8 @@ export function VersionCell({
   devFireMs = 0,
   fireMs = 7 * 24 * 60 * 60 * 1000,
   builds,
+  showBamboo = true,
+  showSentry = false,
 }: {
   mac: VersionSummary | null;
   win: VersionSummary | null;
@@ -166,6 +174,8 @@ export function VersionCell({
   devFireMs?: number;
   fireMs?: number;
   builds?: Record<string, BuildInfo>;
+  showBamboo?: boolean;
+  showSentry?: boolean;
 }) {
   if (!mac && !win && !all) {
     return <td className="px-3 py-2 text-center text-muted-foreground/30">-</td>;
@@ -173,7 +183,7 @@ export function VersionCell({
 
   const deepLink = getDeepLinkConfig(kind, productName || "", productType || "");
   const isUaConnect = productName === "UA_Connect";
-  const common = { kind, productId, productName: productName || "", productType: productType || "", phase, showTimestamps, devFireMs, fireMs, isUaConnect, deepLink };
+  const common = { kind, productId, productName: productName || "", productType: productType || "", phase, showTimestamps, devFireMs, fireMs, isUaConnect, deepLink, showBamboo, showSentry };
 
   return (
     <td className="px-3 py-2 text-xs">

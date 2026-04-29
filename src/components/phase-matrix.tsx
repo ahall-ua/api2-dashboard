@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { VersionCell } from "@/components/version-cell";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
+import { useShowBamboo, useShowSentry } from "@/components/bamboo-sentry-toggles";
 import { useGeoLinker } from "@/components/geocities-effect";
 import { BambooIcon } from "@/components/brand-icons";
 import { useBuildInfo, useOnVisible } from "@/lib/use-build-info";
@@ -46,9 +47,12 @@ function MatrixDataRow({
     if (activePlatforms.has("win") && cell.win) versions.push(cell.win.version);
     if (activePlatforms.has("all") && cell.all) versions.push(cell.all.version);
   }
-  // Defer the bamboo lookup until the row is on (or near) the screen.
+  // Defer the bamboo lookup until the row is visible AND the user actually
+  // wants either bamboo or sentry data.
+  const showBamboo = useShowBamboo();
+  const showSentry = useShowSentry();
   const { ref: rowRef, visible: rowVisible } = useOnVisible<HTMLTableRowElement>();
-  const builds = useBuildInfo(row.name, kind, versions, rowVisible);
+  const builds = useBuildInfo(row.name, kind, versions, rowVisible && (showBamboo || showSentry));
 
   const labelSet = new Set<string>();
   for (const b of Object.values(builds)) for (const l of b.labels ?? []) labelSet.add(l);
@@ -62,7 +66,7 @@ function MatrixDataRow({
         >
           {row.description || row.name}
         </a>
-        {row.bambooPlanUrl && (
+        {showBamboo && row.bambooPlanUrl && (
           <a
             href={row.bambooPlanUrl}
             target="_blank"
@@ -75,7 +79,7 @@ function MatrixDataRow({
         )}
         {showBranches && <BranchTag branch={row.branch} />}
         <div className="text-xs text-muted-foreground">{row.name}</div>
-        {labelSet.size > 0 && (
+        {showBamboo && labelSet.size > 0 && (
           <div className="flex gap-1 flex-wrap mt-1">
             {[...labelSet].map((l) => (
               <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-secondary-foreground">
@@ -102,6 +106,8 @@ function MatrixDataRow({
             devFireMs={devFireMs}
             fireMs={fireMs}
             builds={builds}
+            showBamboo={showBamboo}
+            showSentry={showSentry}
           />
         );
       })}

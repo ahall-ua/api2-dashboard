@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { BranchesToggle } from "@/components/branches-toggle";
+import { BambooToggle, SentryToggle } from "@/components/bamboo-sentry-toggles";
 import {
   ALL_PHASES, DEFAULT_ACTIVE_PHASES, PHASE_TOGGLE_COLORS,
   ALL_PLATFORMS, DEFAULT_ACTIVE_PLATFORMS, PLATFORM_TOGGLE_COLORS,
@@ -232,6 +233,8 @@ export function PhaseFilter({
           <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
         )}
         {showBranchesOption && <BranchesToggle />}
+        <BambooToggle />
+        <SentryToggle />
         {showTimestampsOption && (
           <>
             <button onClick={handleToggleTimestamps}>

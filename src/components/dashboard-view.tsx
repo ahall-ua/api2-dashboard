@@ -13,6 +13,7 @@ import { useBuildInfo, useOnVisible } from "@/lib/use-build-info";
 import type { BuildInfo } from "@/lib/bamboo-api";
 import { BambooIcon, SentryIcons } from "@/components/brand-icons";
 import { BranchesToggle, BranchTag, useShowBranches } from "@/components/branches-toggle";
+import { BambooToggle, SentryToggle, useShowBamboo, useShowSentry } from "@/components/bamboo-sentry-toggles";
 import {
   PLATFORM_COLORS,
   ALL_PLATFORMS, PLATFORM_TOGGLE_COLORS,
@@ -82,7 +83,7 @@ function bambooBuildRedirectUrl(
 // Product types that don't have Bamboo plans in the manifest.
 const NO_BAMBOO_TYPES = new Set(["lunacomponent_with_wrappers", "lunacomponent"]);
 
-function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs, showTimestamps, build }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number; showTimestamps: boolean; build?: BuildInfo }) {
+function VersionLine({ v, phase, kind, productId, productName, productType, devFireMs, fireMs, showTimestamps, build, showBamboo, showSentry }: { v: VersionSummary; phase: string; kind: "apps" | "plugins"; productId: number; productName: string; productType: string; devFireMs: number; fireMs: number; showTimestamps: boolean; build?: BuildInfo; showBamboo: boolean; showSentry: boolean }) {
   const platformColor = PLATFORM_COLORS[v.platform] || "";
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildRedirectUrl(kind, productName, v.version) : null;
@@ -108,7 +109,7 @@ function VersionLine({ v, phase, kind, productId, productName, productType, devF
       </a>
       <span className={`${platformColor} font-medium text-xs`}>{v.platform}</span>
       {showTimestamps && <span className="text-muted-foreground text-xs">{formatTimestamp(v.createdAt)}</span>}
-      {bambooUrl && (
+      {showBamboo && bambooUrl && (
         <a
           href={bambooUrl}
           target="_blank"
@@ -119,7 +120,7 @@ function VersionLine({ v, phase, kind, productId, productName, productType, devF
           <BambooIcon />
         </a>
       )}
-      <SentryIcons sentry={build?.sentry} platform={v.platform} />
+      {showSentry && <SentryIcons sentry={build?.sentry} platform={v.platform} />}
       {isUaConnect ? (
         <a
           href="#"
@@ -169,11 +170,13 @@ function MonitorCard({
   const mac = !all && showMac ? getBestVersionForAccessLevel(row, phase, "mac") : null;
   const win = !all && showWin ? getBestVersionForAccessLevel(row, phase, "win") : null;
   // Pull labels + sentry links from Bamboo for the visible versions on this tile.
-  // Gated on actual viewport visibility — avoids hammering Bamboo on initial
-  // load when many tiles render off-screen.
+  // Gated on viewport visibility AND on whether the user wants bamboo or sentry
+  // info — if both toggles are off, we skip the request entirely.
+  const showBamboo = useShowBamboo();
+  const showSentry = useShowSentry();
   const visibleVersions = [all?.version, mac?.version, win?.version].filter((s): s is string => !!s);
   const { ref: cardRef, visible: cardVisible } = useOnVisible<HTMLDivElement>();
-  const builds = useBuildInfo(row.name, kind, visibleVersions, cardVisible);
+  const builds = useBuildInfo(row.name, kind, visibleVersions, cardVisible && (showBamboo || showSentry));
   if (!mac && !win && !all) return null;
 
   const borderColor = getTypeBorderColor(row.type);
@@ -184,7 +187,7 @@ function MonitorCard({
         <a href={linkify(`/${kind}/${row.id}`)} className="font-semibold text-foreground text-sm leading-tight hover:underline">
           {row.description || row.name}
         </a>
-        {row.bambooPlanUrl && (
+        {showBamboo && row.bambooPlanUrl && (
           <a
             href={row.bambooPlanUrl}
             target="_blank"
@@ -197,7 +200,7 @@ function MonitorCard({
         )}
         {showBranches && <BranchTag branch={row.branch} />}
         <div className="text-xs text-muted-foreground">{row.name}</div>
-        {(() => {
+        {showBamboo && (() => {
           const labelSet = new Set<string>();
           for (const v of [all?.version, mac?.version, win?.version]) {
             const lbls = v ? builds[v]?.labels : undefined;
@@ -216,9 +219,9 @@ function MonitorCard({
         })()}
       </div>
       <div className="space-y-1">
-        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[all.version]} />}
-        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[mac.version]} />}
-        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[win.version]} />}
+        {all && <VersionLine v={all} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[all.version]} showBamboo={showBamboo} showSentry={showSentry} />}
+        {mac && <VersionLine v={mac} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[mac.version]} showBamboo={showBamboo} showSentry={showSentry} />}
+        {win && <VersionLine v={win} phase={phase} kind={kind} productId={row.id} productName={row.name} productType={row.type} devFireMs={devFireMs} fireMs={fireMs} showTimestamps={showTimestamps} build={builds[win.version]} showBamboo={showBamboo} showSentry={showSentry} />}
       </div>
     </div>
   );
@@ -478,6 +481,8 @@ function DashboardInner({ appRows, pluginRows }: { appRows: MatrixRow[]; pluginR
 
         <span className="text-xs text-muted-foreground ml-4 mr-1 uppercase tracking-wider">Options</span>
         <BranchesToggle />
+        <BambooToggle />
+        <SentryToggle />
         <button onClick={toggleTimestamps}>
           <Badge
             variant="secondary"

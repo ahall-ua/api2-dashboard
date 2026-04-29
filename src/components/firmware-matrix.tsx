@@ -4,6 +4,7 @@ import { formatTimestamp } from "@/lib/version-utils";
 import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
+import { useShowBamboo } from "@/components/bamboo-sentry-toggles";
 import { useGeoLinker } from "@/components/geocities-effect";
 import { BambooIcon } from "@/components/brand-icons";
 import {
@@ -42,6 +43,7 @@ function FirmwareCell({
   fireMs: number;
 }) {
   const linkify = useGeoLinker();
+  const showBamboo = useShowBamboo();
   const entries = versions ? Object.entries(versions).sort(([a], [b]) => a.localeCompare(b)) : [];
   if (entries.length === 0) {
     return <TableCell className="text-center text-muted-foreground/30">-</TableCell>;
@@ -65,16 +67,18 @@ function FirmwareCell({
                 {showTimestamps && <span className="text-muted-foreground ml-1.5">{formatTimestamp(v.createdAt)}</span>}
                 {shouldShowFire(phase, v.createdAt, devFireMs, fireMs) && <span className="ml-1" title="Recent deploy">🔥</span>}
               </a>
-              <a
-                href={bambooUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Open Bamboo build"
-                className="inline-flex ml-1 text-muted-foreground hover:text-foreground transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <BambooIcon />
-              </a>
+              {showBamboo && (
+                <a
+                  href={bambooUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open Bamboo build"
+                  className="inline-flex ml-1 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <BambooIcon />
+                </a>
+              )}
             </div>
           );
         })}
@@ -97,6 +101,7 @@ export function FirmwareMatrix({
   fireMs?: number;
 }) {
   const showBranches = useShowBranches();
+  const showBamboo = useShowBamboo();
   const linkify = useGeoLinker();
   if (rows.length === 0) {
     return <p className="text-muted-foreground text-sm">No firmware available.</p>;
@@ -131,7 +136,7 @@ export function FirmwareMatrix({
                 >
                   {row.description || row.name}
                 </a>
-                {row.bambooPlanUrl && (
+                {showBamboo && row.bambooPlanUrl && (
                   <a
                     href={row.bambooPlanUrl}
                     target="_blank"

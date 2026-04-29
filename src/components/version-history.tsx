@@ -22,6 +22,7 @@ import {
 import type { Api2Version } from "@/lib/types";
 import { BambooIcon, SentryIcons } from "@/components/brand-icons";
 import type { BuildInfo as BambooBuildInfo } from "@/lib/bamboo-api";
+import { useShowBamboo, useShowSentry } from "@/components/bamboo-sentry-toggles";
 
 const DEV_PHASES = new Set(["dev", "branch", "internal_dev"]);
 
@@ -123,9 +124,14 @@ export function VersionHistory({
   const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => setMounted(true), []);
 
-  // Fetch bamboo build map for this product (recent builds from main + branch plans)
+  const showBamboo = useShowBamboo();
+  const showSentry = useShowSentry();
+  const wantBuildInfo = showBamboo || showSentry;
+
+  // Fetch bamboo build map for this product (recent builds from main + branch plans).
+  // Only when the user actually wants bamboo or sentry info.
   useEffect(() => {
-    if (!appName) return;
+    if (!appName || !wantBuildInfo) return;
     const params = new URLSearchParams({ product: appName, kind });
     fetch(`/api/bamboo/builds?${params}`)
       .then((r) => (r.ok ? r.json() : { builds: {} }))
@@ -136,11 +142,12 @@ export function VersionHistory({
         }
       })
       .catch(() => {});
-  }, [appName, kind]);
+  }, [appName, kind, wantBuildInfo]);
 
   // Batch-fetch unresolved release names (called when rows scroll into view)
   const queueBuildLookup = useCallback(
     (releaseName: string) => {
+      if (!wantBuildInfo) return;
       if (!appName || fetchedNames.current.has(releaseName) || pendingNames.current.has(releaseName)) return;
       pendingNames.current.add(releaseName);
 
@@ -169,7 +176,7 @@ export function VersionHistory({
           .catch(() => {});
       }, 200);
     },
-    [appName, kind],
+    [appName, kind, wantBuildInfo],
   );
 
   if (!mounted) {
@@ -264,7 +271,7 @@ export function VersionHistory({
                       <TableCell className="font-mono text-sm">
                         <span className="inline-flex items-center gap-1.5">
                           <span>{displayVer}</span>
-                          {build && (
+                          {showBamboo && build && (
                             <a
                               href={build.browseUrl}
                               target="_blank"
@@ -275,11 +282,11 @@ export function VersionHistory({
                               <BambooIcon />
                             </a>
                           )}
-                          <SentryIcons sentry={build?.sentry} platform={v.platform} />
+                          {showSentry && <SentryIcons sentry={build?.sentry} platform={v.platform} />}
                           {shouldShowFire(v.phase, v.created_at, devFireMs, fireMs) && (
                             <span title="Recent deploy">🔥</span>
                           )}
-                          {build?.labels?.map((l) => (
+                          {showBamboo && build?.labels?.map((l) => (
                             <span key={l} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary/60 text-secondary-foreground">
                               {l}
                             </span>
