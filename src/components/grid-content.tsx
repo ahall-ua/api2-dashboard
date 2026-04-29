@@ -10,6 +10,7 @@ import { DEFAULT_FETCH_PHASES } from "@/lib/phase-constants";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import type { MatrixRow } from "@/lib/types";
+import { log } from "@/lib/logger";
 
 function mergePhaseIntoRows(existing: MatrixRow[], incoming: MatrixRow[], phase: string): MatrixRow[] {
   const byId = new Map(existing.map((r) => [r.id, r]));
@@ -191,7 +192,7 @@ function DashboardBody({
           loadedPhasesRef.current.add(data.phase);
           onPhaseLoaded(data.phase, data);
         })
-        .catch((err) => console.warn(`Failed to load phase ${phase}:`, err))
+        .catch((err) => log.warn("phase load failed", { phase, error: err instanceof Error ? err.message : String(err) }))
         .finally(() => inFlightRef.current.delete(phase));
     }
   }, [activePhases, onPhaseLoaded]);

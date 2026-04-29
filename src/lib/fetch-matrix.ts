@@ -3,6 +3,7 @@ import { mergeIntoMatrix, cascadePhases, hasStandardVersions, hasFirmwareVersion
 import type { Api2App, Api2Plugin, MatrixRow } from "./types";
 import { PLATFORMS, FIRMWARE_PLATFORMS } from "./types";
 import { DEFAULT_FETCH_PHASES } from "./phase-constants";
+import { log } from "./logger";
 
 interface RequestTiming {
   endpoint: string;
@@ -137,7 +138,12 @@ export async function fetchMatrix(
       } catch (err) {
         failures++;
         if (err instanceof Api2AuthError) authFailure = true;
-        console.warn(`api2 ${endpoint} ${phase}/${platform} failed:`, err instanceof Error ? err.message : err);
+        log.warn("api2 fetch failed", {
+          endpoint,
+          phase,
+          platform,
+          error: err instanceof Error ? err.message : String(err),
+        });
       }
     }),
   );
@@ -167,7 +173,7 @@ export async function fetchMatrix(
   if (result.length > 0 && failures === 0) {
     matrixCache.set(cacheKey, { data: result, expiresAt: Date.now() + CACHE_TTL_MS });
   } else if (failures > 0) {
-    console.warn(`api2 ${endpoint}: ${failures} requests failed, skipping cache write`);
+    log.warn("api2 cache write skipped due to failures", { endpoint, failures });
   }
   return result;
 }
@@ -178,13 +184,24 @@ function logTimingSummary(endpoint: string, timings: RequestTiming[], wallMs: nu
   const totalRows = timings.reduce((s, t) => s + t.rows, 0);
   const totalPages = timings.reduce((s, t) => s + t.pages, 0);
   const sorted = [...timings].sort((a, b) => b.ms - a.ms);
-
-  console.log(`\n=== ${endpoint} timing (${timings.length} requests, ${totalPages} pages) ===`);
-  console.log(`  wall: ${wallMs}ms | sum-of-requests: ${total}ms | rows: ${totalRows} | bytes: ${(totalBytes / 1024).toFixed(1)}KB`);
-  console.log(`  top 10 slowest:`);
-  for (const t of sorted.slice(0, 10)) {
-    console.log(`    ${t.ms.toString().padStart(5)}ms  ${t.phase.padEnd(15)} ${t.platform.padEnd(8)}  ${t.rows} rows, ${t.pages} pages, ${(t.bytes / 1024).toFixed(1)}KB`);
-  }
   const empty = timings.filter((t) => t.rows === 0).length;
-  console.log(`  empty responses: ${empty} / ${timings.length}`);
+
+  log.info("api2 timing summary", {
+    endpoint,
+    requests: timings.length,
+    pages: totalPages,
+    wallMs,
+    sumMs: total,
+    rows: totalRows,
+    kb: Math.round(totalBytes / 1024),
+    emptyResponses: empty,
+    slowest: sorted.slice(0, 10).map((t) => ({
+      ms: t.ms,
+      phase: t.phase,
+      platform: t.platform,
+      rows: t.rows,
+      pages: t.pages,
+      kb: Math.round(t.bytes / 1024),
+    })),
+  });
 }

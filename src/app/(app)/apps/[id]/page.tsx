@@ -32,15 +32,15 @@ export default async function AppDetailPage({
   const bambooProducts = manifest && app ? findProductsForApp(manifest, app.name) : [];
 
   const header = (
-    <div className="mb-6">
-      <h2 className="text-xl font-semibold">{appName}</h2>
+    <div className="mb-6" key="header">
+      <h2 className="text-xl font-semibold" key="title">{appName}</h2>
       {app && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground" key="info">
           {app.name} &middot; {app.type} &middot; {versions.length} versions
         </p>
       )}
       {bambooProducts.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-3" key="plans">
           <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1.5">Bamboo Plans</h3>
           <BambooLinks products={bambooProducts} />
         </div>

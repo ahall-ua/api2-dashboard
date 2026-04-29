@@ -220,7 +220,7 @@ export function VersionHistory({
         }
 
         return (
-          <>
+          <div>
           {header}
           <div className="flex items-center gap-3 mb-4">
             <Input
@@ -253,7 +253,7 @@ export function VersionHistory({
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 && (
-                  <TableRow>
+                  <TableRow key="empty">
                     <TableCell colSpan={colCount} className="text-center text-muted-foreground py-8">
                       No versions for selected filters
                     </TableCell>
@@ -351,7 +351,7 @@ export function VersionHistory({
               </TableBody>
             </Table>
           </div>
-          </>
+          </div>
         );
       }}
     </PhaseFilter>
