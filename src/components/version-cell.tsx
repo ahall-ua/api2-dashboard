@@ -2,6 +2,7 @@ import type { VersionSummary } from "@/lib/types";
 import { formatTimestamp } from "@/lib/version-utils";
 import { PLATFORM_COLORS } from "@/lib/phase-constants";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
+import { useGeoLinker } from "@/components/geocities-effect";
 import { ExternalLink } from "lucide-react";
 
 const DEV_PHASES = new Set(["dev", "branch", "internal_dev"]);
@@ -97,7 +98,8 @@ function VersionLine2({
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildUrl(kind, productName, productId, v.version) : null;
   const platformColor = PLATFORM_COLORS[platformLabel] || "";
-  const detailUrl = `/${kind}/${productId}#v-${v.versionId}`;
+  const linkify = useGeoLinker();
+  const detailUrl = linkify(`/${kind}/${productId}#v-${v.versionId}`);
 
   return (
     <div className="flex items-center">

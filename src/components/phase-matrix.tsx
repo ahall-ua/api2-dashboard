@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { VersionCell } from "@/components/version-cell";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
+import { useGeoLinker } from "@/components/geocities-effect";
 import { ExternalLink } from "lucide-react";
 import {
   Table,
@@ -32,6 +33,7 @@ function MatrixTable({
   fireMs: number;
 }) {
   const showBranches = useShowBranches();
+  const linkify = useGeoLinker();
   return (
     <div className="border border-border/50 rounded-lg bg-card/50">
       <Table>
@@ -52,7 +54,7 @@ function MatrixTable({
             <TableRow key={row.id} className="border-border/30 hover:bg-accent/50 transition-colors">
               <TableCell className="font-medium">
                 <a
-                  href={`/${kind}/${row.id}`}
+                  href={linkify(`/${kind}/${row.id}`)}
                   className="text-primary hover:text-primary/80 hover:underline transition-colors"
                 >
                   {row.description || row.name}

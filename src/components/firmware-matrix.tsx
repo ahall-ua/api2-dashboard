@@ -4,6 +4,7 @@ import { formatTimestamp } from "@/lib/version-utils";
 import { Badge } from "@/components/ui/badge";
 import { PHASE_COLORS } from "@/lib/phase-constants";
 import { BranchTag, useShowBranches } from "@/components/branches-toggle";
+import { useGeoLinker } from "@/components/geocities-effect";
 import { ExternalLink } from "lucide-react";
 import {
   Table,
@@ -40,6 +41,7 @@ function FirmwareCell({
   devFireMs: number;
   fireMs: number;
 }) {
+  const linkify = useGeoLinker();
   const entries = versions ? Object.entries(versions).sort(([a], [b]) => a.localeCompare(b)) : [];
   if (entries.length === 0) {
     return <TableCell className="text-center text-muted-foreground/30">-</TableCell>;
@@ -48,7 +50,7 @@ function FirmwareCell({
     <TableCell className="px-3 py-2 text-xs">
       <div className="space-y-1">
         {entries.map(([plat, v]) => {
-          const detailUrl = `/apps/${productId}#v-${v.versionId}`;
+          const detailUrl = linkify(`/apps/${productId}#v-${v.versionId}`);
           const bambooUrl = `/api/bamboo/redirect?${new URLSearchParams({
             product: productName,
             kind: "apps",
@@ -95,6 +97,7 @@ export function FirmwareMatrix({
   fireMs?: number;
 }) {
   const showBranches = useShowBranches();
+  const linkify = useGeoLinker();
   if (rows.length === 0) {
     return <p className="text-muted-foreground text-sm">No firmware available.</p>;
   }
@@ -123,7 +126,7 @@ export function FirmwareMatrix({
             <TableRow key={row.id} className="border-border/30 hover:bg-accent/50 transition-colors">
               <TableCell className="font-medium">
                 <a
-                  href={`/apps/${row.id}`}
+                  href={linkify(`/apps/${row.id}`)}
                   className="text-primary hover:text-primary/80 hover:underline transition-colors"
                 >
                   {row.description || row.name}

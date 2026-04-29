@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { displayType, groupByType, getBestVersionForAccessLevel } from "@/lib/version-utils";
 import { ShowFilter, useActiveShow } from "@/components/show-filter";
+import { useGeoLinker } from "@/components/geocities-effect";
 import { getDeepLinkConfig, makeArchiveUrl } from "@/lib/deep-links";
 import { ExternalLink } from "lucide-react";
 import { BranchesToggle, BranchTag, useShowBranches } from "@/components/branches-toggle";
@@ -83,7 +84,8 @@ function VersionLine({ v, phase, kind, productId, productName, productType, devF
   const platformColor = PLATFORM_COLORS[v.platform] || "";
   const hasBamboo = !NO_BAMBOO_TYPES.has(productType);
   const bambooUrl = hasBamboo ? bambooBuildRedirectUrl(kind, productName, v.version) : null;
-  const detailUrl = `/${kind}/${productId}#v-${v.versionId}`;
+  const linkify = useGeoLinker();
+  const detailUrl = linkify(`/${kind}/${productId}#v-${v.versionId}`);
   const deepLink = getDeepLinkConfig(kind, productName, productType);
   const isUaConnect = productName === "UA_Connect";
 
@@ -154,6 +156,7 @@ function MonitorCard({
   fireMs: number;
 }) {
   const showBranches = useShowBranches();
+  const linkify = useGeoLinker();
   const showMac = platforms.has("mac") || platforms.has("all");
   const showWin = platforms.has("win") || platforms.has("all");
   const all = getBestVersionForAccessLevel(row, phase, "all");
@@ -164,9 +167,9 @@ function MonitorCard({
   const borderColor = getTypeBorderColor(row.type);
 
   return (
-    <div className={`border border-border/50 border-l-4 ${borderColor} rounded-lg bg-card/70 p-4 flex flex-col gap-2 hover:bg-card transition-colors`}>
+    <div className={`geo-fire-host border border-border/50 border-l-4 ${borderColor} rounded-lg bg-card/70 p-4 flex flex-col gap-2 hover:bg-card transition-colors`}>
       <div>
-        <a href={`/${kind}/${row.id}`} className="font-semibold text-foreground text-sm leading-tight hover:underline">
+        <a href={linkify(`/${kind}/${row.id}`)} className="font-semibold text-foreground text-sm leading-tight hover:underline">
           {row.description || row.name}
         </a>
         {row.bambooPlanUrl && (

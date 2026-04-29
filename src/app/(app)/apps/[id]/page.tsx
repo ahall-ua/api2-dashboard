@@ -8,10 +8,14 @@ import { redirect } from "next/navigation";
 
 export default async function AppDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ geocities?: string }>;
 }) {
   const { id } = await params;
+  const sp = await searchParams;
+  const backHref = sp.geocities === "1" ? "/dashboard?geocities=1" : "/dashboard";
   const token = await getReadOnlyToken();
   if (!token) redirect("/login");
 
@@ -29,7 +33,7 @@ export default async function AppDetailPage({
   return (
     <div className="max-w-[1400px]">
       <div className="mb-6">
-        <a href="/dashboard" className="text-sm text-muted-foreground hover:underline">
+        <a href={backHref} className="text-sm text-muted-foreground hover:underline">
           &larr; Back
         </a>
         <h2 className="text-xl font-semibold mt-2">{appName}</h2>

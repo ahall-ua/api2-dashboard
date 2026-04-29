@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 
 const GEOCITIES_CSS = `
   html.geocities, html.geocities body {
@@ -156,6 +156,19 @@ const GEOCITIES_CSS = `
     vertical-align: middle;
     image-rendering: pixelated;
   }
+
+  /* Any element marked geo-fire-host that contains a 🔥 (title="Recent deploy")
+     gets the flaming background. Also auto-applies to <td> and <tr> ancestors
+     of 🔥 spans so version cells and history rows light up too. */
+  html.geocities .geo-fire-host:has([title="Recent deploy"]),
+  html.geocities td:has([title="Recent deploy"]),
+  html.geocities tr:has(> td > [title="Recent deploy"]) {
+    background-image: url('/flamingline.gif') !important;
+    background-size: 100% 100% !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    text-shadow: 0 0 3px #000, 1px 1px 0 #000 !important;
+  }
 `;
 
 function ConstructionSign({ src = "/under-construction.gif", width = 220 }: { src?: string; width?: number }) {
@@ -192,11 +205,36 @@ function RollingCounter({ value, digits = 7 }: { value: number; digits?: number 
   );
 }
 
+/**
+ * Append ?geocities=1 to a relative href, preserving any existing
+ * query string and fragment.
+ */
+export function appendGeocities(href: string): string {
+  const hashIdx = href.indexOf("#");
+  const path = hashIdx >= 0 ? href.slice(0, hashIdx) : href;
+  const hash = hashIdx >= 0 ? href.slice(hashIdx) : "";
+  const sep = path.includes("?") ? "&" : "?";
+  return `${path}${sep}geocities=1${hash}`;
+}
+
+/**
+ * Returns a function that conditionally appends ?geocities=1 to internal
+ * links so the easter-egg state survives client-side navigation.
+ */
+export function useGeoLinker(): (href: string) => string {
+  // Hooks-only — must be called from a client component.
+  const sp = useSearchParams();
+  const enabled = sp.get("geocities") === "1";
+  return (href) => (enabled ? appendGeocities(href) : href);
+}
+
 function GeocitiesEffectInner() {
   const searchParams = useSearchParams();
   const enabled = searchParams.get("geocities") === "1";
-  const initialVisitors = useMemo(() => 19980000 + Math.floor(Math.random() * 90000 + 10000), []);
-  const [visitors, setVisitors] = useState(initialVisitors);
+  // Don't seed with Math.random() at render time — that causes a hydration
+  // mismatch (server picks a different number than the client). Initialise
+  // to null and only set the real value after mount.
+  const [visitors, setVisitors] = useState<number | null>(null);
 
   useEffect(() => {
     if (enabled) document.documentElement.classList.add("geocities");
@@ -206,8 +244,9 @@ function GeocitiesEffectInner() {
 
   useEffect(() => {
     if (!enabled) return;
+    setVisitors(19980000 + Math.floor(Math.random() * 90000 + 10000));
     const interval = setInterval(() => {
-      setVisitors((v) => v + 1 + Math.floor(Math.random() * 3));
+      setVisitors((v) => (v ?? 0) + 1 + Math.floor(Math.random() * 3));
     }, 2500);
     return () => clearInterval(interval);
   }, [enabled]);
@@ -230,7 +269,7 @@ function GeocitiesEffectInner() {
         <div className="geo-band-center">
           <div className="geo-band-row" style={{ fontSize: 14 }}>
             <span className="label">VISITORS</span>
-            <RollingCounter value={visitors} digits={7} />
+            <RollingCounter value={visitors ?? 0} digits={7} />
             <span style={{ marginLeft: 12 }}>
               Last updated: <span className="last-updated">04/21/1998</span>
             </span>
